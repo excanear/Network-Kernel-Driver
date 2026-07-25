@@ -36,9 +36,12 @@ Design completo: [`phase2-kernel-driver-design.md`](phase2-kernel-driver-design.
   automática quando a condição cessa. Gateway offline, DNS lento e mudança de
   gateway/DNS ficam para a Fase D (dependem de dados de topologia). Canais de
   notificação externos (email/webhook/Slack) permanecem no roadmap.
-- **Relatórios**: geração automática em PDF/CSV/JSON/HTML/Markdown (resumo
-  executivo, timeline, eventos, métricas, gráficos, health, alertas,
-  conclusões) — `network export` na CLI sai do estado de stub.
+- ✅ **Relatórios** (`crates/reports`, `GET /api/v1/reports?format=`, `network
+  export --format`): CSV/JSON/HTML/Markdown/PDF reais, com resumo executivo,
+  métricas, gráfico de health (SVG no HTML), eventos/alertas e conclusões.
+  Timeline detalhada por evento fica para quando o histórico multi-intervalo
+  (Fase F) estiver pronto — hoje o relatório reflete o snapshot atual + janela
+  recente de alertas.
 - **Sistema de plugins**: coletores, dashboards, gráficos, alertas,
   relatórios e integrações adicionais carregáveis sem alterar o core.
 - **Logging estruturado com rotação** e trilha de auditoria completa.

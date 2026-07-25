@@ -1,5 +1,7 @@
 mod commands;
 
+use std::path::PathBuf;
+
 use clap::{Parser, Subcommand};
 
 const DEFAULT_HOST: &str = "127.0.0.1";
@@ -49,8 +51,13 @@ enum Commands {
     },
     /// Network topology graph (planned — see docs/roadmap.md)
     Topology,
-    /// Export reports (planned — see docs/roadmap.md)
-    Export,
+    /// Export a report (csv, json, html, md, pdf)
+    Export {
+        #[arg(long, default_value = "html")]
+        format: String,
+        #[arg(long)]
+        output: Option<PathBuf>,
+    },
     /// Show alerts (active by default)
     Alerts {
         /// Show recent alerts (active + resolved) instead of only active ones
@@ -80,7 +87,7 @@ async fn main() -> anyhow::Result<()> {
             limit,
         } => commands::history::run(&base_url, interface, from, to, limit).await?,
         Commands::Topology => commands::topology::run(&base_url).await?,
-        Commands::Export => commands::not_implemented("export"),
+        Commands::Export { format, output } => commands::export::run(&base_url, &format, output).await?,
         Commands::Alerts { all } => commands::alerts::run(&base_url, all).await?,
         Commands::Statistics => commands::statistics::run(&base_url).await?,
     }

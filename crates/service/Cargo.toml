@@ -14,6 +14,7 @@ store = { path = "../store" }
 alerts = { path = "../alerts" }
 health = { path = "../health" }
 topology = { path = "../topology" }
+reports = { path = "../reports" }
 serde.workspace = true
 serde_json.workspace = true
 chrono.workspace = true

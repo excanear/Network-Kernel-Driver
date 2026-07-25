@@ -8,6 +8,7 @@ members = [
     "crates/health",
     "crates/alerts",
     "crates/topology",
+    "crates/reports",
     "crates/service",
     "crates/cli",
 ]

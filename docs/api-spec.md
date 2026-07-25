@@ -16,6 +16,7 @@ Base local de desenvolvimento: `http://localhost:7878/api/v1`
 | GET | `/alerts` | Alertas atualmente ativos |
 | GET | `/alerts/recent?limit=` | Alertas recentes (ativos + resolvidos) |
 | GET | `/topology` | Grafo de topologia (nós + arestas) |
+| GET | `/reports?format=csv\|json\|html\|md\|pdf` | Relatório completo no formato pedido |
 
 Respostas em JSON, serializando `Snapshot`/`InterfaceStats` (ver
 [`data-model.md`](data-model.md)) via `serde`.
@@ -115,7 +116,7 @@ padrão, `--json` para automação.
 | `network alerts [--all]` | Alertas ativos (ou recentes com `--all`) |
 | `network statistics` | Health score agregado por interface |
 | `network topology` | Grafo de topologia em texto |
+| `network export --format <fmt> [--output <arquivo>]` | Salva relatório (csv/json/html/md/pdf) |
 
-**Stubados (parseados, imprimem "não implementado ainda" com referência ao roadmap):**
-
-`network export`.
+Todos os subcomandos originalmente planejados na Fase 1 (`topology`, `export`,
+`alerts`, `statistics`) estão implementados contra dados reais.

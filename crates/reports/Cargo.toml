@@ -1,0 +1,15 @@
+[package]
+name = "reports"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+collector-core = { path = "../collector-core" }
+health = { path = "../health" }
+alerts = { path = "../alerts" }
+chrono.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+printpdf = "0.7"
