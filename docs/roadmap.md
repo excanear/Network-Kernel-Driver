@@ -21,13 +21,17 @@ Design completo: [`phase2-kernel-driver-design.md`](phase2-kernel-driver-design.
 - **Topologia**: detecção automática de NIC, gateway, DNS, VPN, interfaces
   virtuais (Hyper-V, Docker, WSL, VMware, VirtualBox), grafo interativo
   (Cytoscape.js) na Camada 6.
-- **Health score**: disponibilidade, estabilidade, perda de pacotes, mudanças
-  de link, qualidade, temperatura (quando exposta pela Fase 2), erros,
-  latência, jitter — agregados num score único por interface.
-- **Motor de alertas**: regras configuráveis (packet loss > X, latência > X,
-  link down, interface/gateway offline, DNS lento, erro CRC, mudança de
-  IP/gateway/DNS, velocidade negociada reduzida, temperatura elevada),
-  canais de notificação plugáveis.
+- ✅ **Health score** (`crates/health`, `GET /api/v1/health[/:index]`, `network
+  statistics`): disponibilidade, estabilidade (mudanças de link), perda de
+  pacotes e taxa de erros, agregados num score 0-100 por interface a partir do
+  histórico em memória. Temperatura/latência/jitter ficam para quando houver
+  driver real (Fase 2) ou sondagem ativa (ping/RTT — ainda não implementada).
+- ✅ **Motor de alertas** (`crates/alerts`, `GET /api/v1/alerts[/recent]`,
+  `network alerts`): packet loss > X, taxa de erro > X, link down, interface
+  offline, mudança de IP, velocidade negociada reduzida — com resolução
+  automática quando a condição cessa. Gateway offline, DNS lento e mudança de
+  gateway/DNS ficam para a Fase D (dependem de dados de topologia). Canais de
+  notificação externos (email/webhook/Slack) permanecem no roadmap.
 - **Relatórios**: geração automática em PDF/CSV/JSON/HTML/Markdown (resumo
   executivo, timeline, eventos, métricas, gráficos, health, alertas,
   conclusões) — `network export` na CLI sai do estado de stub.

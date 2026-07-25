@@ -5,6 +5,8 @@ members = [
     "crates/collector-windows",
     "crates/collector-linux",
     "crates/store",
+    "crates/health",
+    "crates/alerts",
     "crates/service",
     "crates/cli",
 ]

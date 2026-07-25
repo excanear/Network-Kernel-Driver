@@ -11,6 +11,8 @@ path = "src/main.rs"
 [dependencies]
 collector-core = { path = "../collector-core" }
 store = { path = "../store" }
+alerts = { path = "../alerts" }
+health = { path = "../health" }
 serde.workspace = true
 serde_json.workspace = true
 chrono.workspace = true

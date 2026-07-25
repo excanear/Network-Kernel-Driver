@@ -7,7 +7,7 @@ use axum::Json;
 use chrono::{DateTime, TimeZone, Utc};
 use collector_core::{InterfaceCollector, InterfaceStats};
 use serde::{Deserialize, Serialize};
-use store::{HistoryStore, RingBufferStore};
+use store::{AlertStore, HistoryStore, RingBufferStore};
 use tokio::sync::broadcast;
 
 use collector_core::Snapshot;
@@ -16,6 +16,7 @@ pub struct AppState {
     pub collector: Arc<dyn InterfaceCollector>,
     pub ring_buffer: Arc<RingBufferStore>,
     pub history: Arc<dyn HistoryStore>,
+    pub alert_store: Arc<dyn AlertStore>,
     pub tx: broadcast::Sender<Snapshot>,
     pub started_at: Instant,
     pub poll_interval_ms: u64,

@@ -1,6 +1,8 @@
+pub mod alerts;
 pub mod history;
 pub mod interfaces;
 pub mod monitor;
+pub mod statistics;
 pub mod status;
 
 pub fn not_implemented(command: &str) {

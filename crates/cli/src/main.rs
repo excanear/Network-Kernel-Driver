@@ -51,9 +51,13 @@ enum Commands {
     Topology,
     /// Export reports (planned — see docs/roadmap.md)
     Export,
-    /// Alert rules (planned — see docs/roadmap.md)
-    Alerts,
-    /// Aggregate statistics (planned — see docs/roadmap.md)
+    /// Show alerts (active by default)
+    Alerts {
+        /// Show recent alerts (active + resolved) instead of only active ones
+        #[arg(long)]
+        all: bool,
+    },
+    /// Aggregate health statistics per interface
     Statistics,
 }
 
@@ -77,8 +81,8 @@ async fn main() -> anyhow::Result<()> {
         } => commands::history::run(&base_url, interface, from, to, limit).await?,
         Commands::Topology => commands::not_implemented("topology"),
         Commands::Export => commands::not_implemented("export"),
-        Commands::Alerts => commands::not_implemented("alerts"),
-        Commands::Statistics => commands::not_implemented("statistics"),
+        Commands::Alerts { all } => commands::alerts::run(&base_url, all).await?,
+        Commands::Statistics => commands::statistics::run(&base_url).await?,
     }
 
     Ok(())

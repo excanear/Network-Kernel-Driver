@@ -1,4 +1,6 @@
+mod alert_routes;
 mod grpc;
+mod health_routes;
 mod poller;
 mod routes;
 mod ws;
@@ -10,8 +12,8 @@ use std::time::{Duration, Instant};
 use axum::routing::get;
 use axum::Router;
 use collector_core::InterfaceCollector;
-use store::{RingBufferStore, SqliteHistoryStore};
-use tokio::sync::broadcast;
+use store::{RingBufferStore, SqliteAlertStore, SqliteHistoryStore};
+use tokio::sync::{broadcast, Mutex as AsyncMutex};
 use tower_http::cors::{Any, CorsLayer};
 use tower_http::trace::TraceLayer;
 use tracing::info;
@@ -41,6 +43,11 @@ async fn main() -> anyhow::Result<()> {
     let ring_buffer = Arc::new(RingBufferStore::new());
     let history: Arc<dyn store::HistoryStore> =
         Arc::new(SqliteHistoryStore::open("network-observatory.db")?);
+    let alert_store: Arc<dyn store::AlertStore> =
+        Arc::new(SqliteAlertStore::open("network-observatory.db")?);
+    let alert_engine = Arc::new(AsyncMutex::new(alerts::AlertEngine::new(
+        alerts::AlertRuleConfig::default(),
+    )));
     let (tx, _rx) = broadcast::channel(64);
 
     let poll_interval = Duration::from_secs(1);
@@ -50,6 +57,8 @@ async fn main() -> anyhow::Result<()> {
         collector: collector.clone(),
         ring_buffer: ring_buffer.clone(),
         history: history.clone(),
+        alert_store: alert_store.clone(),
+        alert_engine: alert_engine.clone(),
         tx: tx.clone(),
         poll_interval,
         persist_every_n_ticks,
@@ -60,6 +69,7 @@ async fn main() -> anyhow::Result<()> {
         collector,
         ring_buffer,
         history,
+        alert_store,
         tx,
         started_at: Instant::now(),
         poll_interval_ms: poll_interval.as_millis() as u64,
@@ -82,6 +92,10 @@ async fn main() -> anyhow::Result<()> {
         )
         .route("/api/v1/version", get(routes::get_version))
         .route("/api/v1/ws/interfaces", get(ws::ws_interfaces))
+        .route("/api/v1/health", get(health_routes::get_health_all))
+        .route("/api/v1/health/:index", get(health_routes::get_health_one))
+        .route("/api/v1/alerts", get(alert_routes::get_active_alerts))
+        .route("/api/v1/alerts/recent", get(alert_routes::get_recent_alerts))
         .layer(cors)
         .layer(TraceLayer::new_for_http())
         .with_state(state);
