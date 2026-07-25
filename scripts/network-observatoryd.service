@@ -1,0 +1,21 @@
+[Unit]
+Description=Network Observatory daemon
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/network-observatoryd
+Restart=on-failure
+RestartSec=5
+User=netobs
+Group=netobs
+WorkingDirectory=/var/lib/network-observatory
+AmbientCapabilities=
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/network-observatory
+
+[Install]
+WantedBy=multi-user.target

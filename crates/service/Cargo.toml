@@ -38,6 +38,7 @@ protoc-bin-vendored = "3"
 
 [target.'cfg(windows)'.dependencies]
 collector-windows = { path = "../collector-windows" }
+windows-service = "0.7"
 
 [target.'cfg(unix)'.dependencies]
 collector-linux = { path = "../collector-linux" }

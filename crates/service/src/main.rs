@@ -9,19 +9,20 @@ mod report_routes;
 mod routes;
 mod topology_routes;
 mod ws;
+#[cfg(windows)]
+mod win_service;
 
 use std::net::SocketAddr;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 use axum::http::{HeaderValue, Method};
-use tower_http::cors::AllowHeaders;
 use axum::routing::{get, post};
 use axum::Router;
 use collector_core::InterfaceCollector;
 use store::{AuthStore, RingBufferStore, SqliteAlertStore, SqliteAuthStore, SqliteHistoryStore};
 use tokio::sync::{broadcast, Mutex as AsyncMutex};
-use tower_http::cors::CorsLayer;
+use tower_http::cors::{AllowHeaders, CorsLayer};
 use tower_http::trace::TraceLayer;
 use tracing::{info, warn};
 
@@ -55,15 +56,22 @@ fn bootstrap_admin(auth_store: &dyn AuthStore) -> anyhow::Result<()> {
     Ok(())
 }
 
-#[tokio::main]
-async fn main() -> anyhow::Result<()> {
-    tracing_subscriber::fmt()
+fn init_tracing() {
+    // Avoid double-initialization when running under the Windows service
+    // dispatcher, which calls into this module from a different thread.
+    let _ = tracing_subscriber::fmt()
         .with_env_filter(
-            tracing_subscriber::EnvFilter::try_from_default_env()
-                .unwrap_or_else(|_| "info".into()),
+            tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| "info".into()),
         )
-        .init();
+        .try_init();
+}
 
+/// Core server body: shared by the normal console entrypoint (`main`) and the
+/// Windows Service entrypoint (`win_service::run`, Phase I). Runs until the
+/// HTTP or gRPC listener fails — the Windows Service wrapper terminates the
+/// process itself in response to SCM stop control, rather than this function
+/// returning cleanly (see docs/roadmap.md Phase I for the tradeoff).
+pub async fn run_server() -> anyhow::Result<()> {
     let collector = build_collector();
     let ring_buffer = Arc::new(RingBufferStore::new());
     let history: Arc<dyn store::HistoryStore> =
@@ -176,4 +184,21 @@ async fn main() -> anyhow::Result<()> {
     tokio::try_join!(http_server, grpc_server)?;
 
     Ok(())
+}
+
+fn main() -> anyhow::Result<()> {
+    let args: Vec<String> = std::env::args().collect();
+
+    #[cfg(windows)]
+    if args.iter().any(|a| a == "--service") {
+        // Handed off to the Service Control Manager dispatcher; does not
+        // return until the service stops. Tracing is initialized inside
+        // win_service::run once the service thread is running.
+        return win_service::run();
+    }
+
+    let _ = &args;
+    init_tracing();
+    let rt = tokio::runtime::Runtime::new()?;
+    rt.block_on(run_server())
 }

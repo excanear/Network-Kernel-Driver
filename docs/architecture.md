@@ -51,6 +51,16 @@ Fase 2 sem alterar nenhuma camada acima — o contrato de dados
 
 ## Camada 2 — Network Service
 
+✅ Suporte real a **Windows Service** (`crates/service/src/win_service.rs`,
+flag `--service`, integração via crate `windows-service` com a Service
+Control Manager) e **daemon systemd** no Linux
+(`scripts/network-observatoryd.service` + `scripts/install-linux-daemon.sh`,
+usuário dedicado sem privilégios, `ProtectSystem=strict`). Instalação via
+`scripts/install-windows-service.ps1` (Windows, requer elevação) ou
+`scripts/install-linux-daemon.sh` (Linux, requer sudo) — nenhum dos dois é
+executado automaticamente, pois altera estado persistente do sistema
+operacional.
+
 Binário `network-observatoryd` (Rust, tokio). Único processo que fala com a
 Camada 1 e é a fonte única de verdade para as camadas acima:
 
