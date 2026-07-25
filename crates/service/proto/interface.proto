@@ -1,0 +1,52 @@
+syntax = "proto3";
+package network_observatory.v1;
+
+service InterfaceService {
+  rpc GetSnapshot(SnapshotRequest) returns (Snapshot);
+  rpc StreamSnapshots(SnapshotRequest) returns (stream Snapshot);
+  rpc GetHistory(HistoryRequest) returns (HistoryResponse);
+}
+
+message SnapshotRequest {}
+
+message Snapshot {
+  repeated InterfaceStats interfaces = 1;
+  int64 taken_at_unix_ms = 2;
+}
+
+message InterfaceStats {
+  uint32 index = 1;
+  string name = 2;
+  string description = 3;
+  string mac_address = 4;
+  uint32 mtu = 5;
+  string oper_status = 6;
+  optional uint64 link_speed_bps = 7;
+  optional string duplex = 8;
+  string if_type = 9;
+  repeated string ipv4_addresses = 10;
+  repeated string ipv6_addresses = 11;
+  uint64 rx_bytes = 12;
+  uint64 tx_bytes = 13;
+  uint64 rx_packets = 14;
+  uint64 tx_packets = 15;
+  uint64 rx_errors = 16;
+  uint64 tx_errors = 17;
+  uint64 rx_drops = 18;
+  uint64 tx_drops = 19;
+  optional uint64 rx_broadcast_packets = 20;
+  optional uint64 rx_multicast_packets = 21;
+  int64 timestamp_unix_ms = 22;
+  string collector_source = 23;
+}
+
+message HistoryRequest {
+  uint32 if_index = 1;
+  int64 from_unix_ms = 2;
+  int64 to_unix_ms = 3;
+  uint32 limit = 4;
+}
+
+message HistoryResponse {
+  repeated InterfaceStats samples = 1;
+}

@@ -1,3 +1,4 @@
+mod grpc;
 mod poller;
 mod routes;
 mod ws;
@@ -64,6 +65,8 @@ async fn main() -> anyhow::Result<()> {
         poll_interval_ms: poll_interval.as_millis() as u64,
     });
 
+    let state_for_grpc = state.clone();
+
     let cors = CorsLayer::new()
         .allow_origin(Any)
         .allow_methods(Any)
@@ -84,9 +87,25 @@ async fn main() -> anyhow::Result<()> {
         .with_state(state);
 
     let addr = SocketAddr::from(([127, 0, 0, 1], 7878));
-    info!("network-observatoryd listening on http://{addr}");
-    let listener = tokio::net::TcpListener::bind(addr).await?;
-    axum::serve(listener, app).await?;
+    let grpc_addr = SocketAddr::from(([127, 0, 0, 1], 50051));
+
+    info!("network-observatoryd listening on http://{addr} (REST/WS) and grpc://{grpc_addr}");
+
+    let http_server = async {
+        let listener = tokio::net::TcpListener::bind(addr).await?;
+        axum::serve(listener, app).await?;
+        anyhow::Ok(())
+    };
+
+    let grpc_server = async {
+        tonic::transport::Server::builder()
+            .add_service(grpc::build_server(state_for_grpc))
+            .serve(grpc_addr)
+            .await?;
+        anyhow::Ok(())
+    };
+
+    tokio::try_join!(http_server, grpc_server)?;
 
     Ok(())
 }

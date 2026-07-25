@@ -33,8 +33,6 @@ Design completo: [`phase2-kernel-driver-design.md`](phase2-kernel-driver-design.
   conclusões) — `network export` na CLI sai do estado de stub.
 - **Sistema de plugins**: coletores, dashboards, gráficos, alertas,
   relatórios e integrações adicionais carregáveis sem alterar o core.
-- **gRPC real**: implementação do contrato já documentado em
-  [`api-spec.md`](api-spec.md).
 - **Logging estruturado com rotação** e trilha de auditoria completa.
 - **Banco de dados**: suporte PostgreSQL/TimescaleDB como alternativa ao
   SQLite para séries temporais em escala.

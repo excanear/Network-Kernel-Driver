@@ -33,11 +33,11 @@ mensagem JSON (`Snapshot`) a cada tick do loop de poll (mesmo ciclo que
 alimenta o REST — fonte única de coleta, sem chamadas duplicadas ao
 coletor). Múltiplos clientes compartilham o mesmo broadcast channel.
 
-## gRPC (documentado, não implementado na Fase 1)
+## gRPC
 
-Contrato `.proto` alvo (mesmo shape do modelo REST/WS), para implementação na
-Fase 3 quando houver consumidores que se beneficiem de streaming bidirecional
-tipado (ex.: plugins, integrações externas):
+Implementado (Fase 2/B) via `tonic`, servido em `grpc://127.0.0.1:50051` ao lado
+do REST/WS (mesma `AppState`, mesma fonte de coleta — `crates/service/src/grpc.rs`).
+Contrato `.proto` em `crates/service/proto/interface.proto`:
 
 ```protobuf
 syntax = "proto3";

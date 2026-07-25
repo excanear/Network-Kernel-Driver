@@ -65,9 +65,9 @@ Camada 1 e é a fonte única de verdade para as camadas acima:
 
 - **REST** (`/api/v1/...`) — snapshots atuais e consultas de histórico.
 - **WebSocket** (`/api/v1/ws/interfaces`) — streaming de snapshots em tempo real.
-- **gRPC** — contrato `.proto` documentado em [`api-spec.md`](api-spec.md);
-  implementação adiada (Fase 3) pois REST+WS já cobrem os consumidores da
-  Fase 1 (CLI, web).
+- **gRPC** — implementado via `tonic` em `grpc://127.0.0.1:50051`, contrato em
+  [`api-spec.md`](api-spec.md), compartilhando a mesma fonte de coleta que o
+  REST/WS.
 
 ## Camada 4 — CLI
 
