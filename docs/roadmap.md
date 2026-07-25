@@ -7,9 +7,18 @@ web ao vivo. Ver [`phase1-slice-design.md`](phase1-slice-design.md).
 
 ## Fase 2 — Driver de modo kernel real
 
-- Windows: driver KMDF/NDIS assinado.
-- Linux: módulo de kernel + família Netlink.
-- Backend `collector-kernel` plugável atrás do mesmo trait `InterfaceCollector`.
+- ✅ **Windows**: filtro NDIS 6.30 real (`driver/windows/`) — compila e linka
+  com sucesso contra o WDK (`cl.exe`/`link.exe` diretos, sem a extensão VS do
+  WDK que não instalou nesta máquina), test-assinado com certificado próprio.
+  **Falta apenas a instalação** (`install-test-driver.ps1`), que exige
+  PowerShell elevado + reboot para test-signing — não executável pelo agente
+  de automação nesta sessão (mesma classe de limitação do sudo/WSL2 na Fase
+  F/M), documentado em `driver/windows/README.md`.
+- ❌ Linux: módulo de kernel + família Netlink — ver Fase M.
+- Backend `collector-kernel` plugável atrás do mesmo trait `InterfaceCollector`
+  (contrato IOCTL já definido em `driver/windows/inc/ioctl_contract.h`; o
+  crate Rust `collector-kernel-windows` que fala com `\\.\NetObsFilter` ainda
+  não foi escrito — próximo passo depois da instalação do driver).
 
 Design completo: [`phase2-kernel-driver-design.md`](phase2-kernel-driver-design.md).
 

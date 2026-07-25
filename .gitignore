@@ -13,6 +13,16 @@ web/.env*.local
 *.sqlite3
 /logs/
 
+# Windows driver build artifacts (Phase L) — see driver/windows/build.ps1
+driver/windows/build/
+driver/windows/*.obj
+driver/windows/*.sys
+driver/windows/*.pdb
+driver/windows/*.exp
+driver/windows/*.lib
+driver/windows/*.cat
+driver/windows/*.pfx
+
 # OS/editor
 .DS_Store
 Thumbs.db

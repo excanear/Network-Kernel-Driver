@@ -1,0 +1,63 @@
+;
+; NetworkObservatory.inf — NDIS 6.30 Lightweight Filter driver install file.
+; Development/test-signing use only. See docs/phase2-kernel-driver-design.md
+; for the production signing path (EV cert + WHQL submission).
+;
+
+[Version]
+Signature   = "$Windows NT$"
+Class       = NetService
+ClassGUID   = {4D36E974-E325-11CE-BFC1-08002BE10318}
+Provider    = %ProviderString%
+CatalogFile = NetObsFilter.cat
+DriverVer   = ; stamped by stampinf/signtool at build time
+PnpLockdown = 1
+
+[Manufacturer]
+%ProviderString% = NetObsFilter_Provider, NTamd64
+
+[NetObsFilter_Provider.NTamd64]
+%NetObsFilter_Desc% = NetObsFilter.Install, ms_netobsfilter
+
+[ControlFlags]
+ExcludeFromSelect = ms_netobsfilter
+
+[NetObsFilter.Install]
+AddReg = NetObsFilter.AddReg
+Characteristics = 0x40000
+NetCfgInstanceId = "{7E2E6F1B-9A3D-4B6E-8C1A-2F5D7E8B9A11}"
+CopyFiles = NetObsFilter.CopyFiles
+
+[NetObsFilter.Install.Services]
+AddService = NetObsFilter,, NetObsFilter.AddService
+
+[NetObsFilter.AddService]
+DisplayName    = %NetObsFilter_Desc%
+ServiceType    = 1               ; SERVICE_KERNEL_DRIVER
+StartType      = 3               ; SERVICE_DEMAND_START (dev/test); use 1 (SYSTEM_START) in production
+ErrorControl   = 1               ; SERVICE_ERROR_NORMAL
+ServiceBinary  = %13%\NetObsFilter.sys
+
+[NetObsFilter.CopyFiles]
+NetObsFilter.sys
+
+[SourceDisksNames]
+1 = %DiskDescription%,,,
+
+[SourceDisksFiles]
+NetObsFilter.sys = 1
+
+[DestinationDirs]
+NetObsFilter.CopyFiles = 13 ; %WinDir%\System32\drivers on the NT driver store equivalent for filter INFs
+
+[NetObsFilter.AddReg]
+HKR, Ndi,              Service,           0, "NetObsFilter"
+HKR, Ndi\Interfaces,    UpperRange,        0, "noupper"
+HKR, Ndi\Interfaces,    LowerRange,        0, "nolower"
+HKR, Ndi\Interfaces,    FilterMediaTypes,  0, "ethernet"
+HKR, Ndi\Interfaces,    FilterClass,       0, "compat"
+
+[Strings]
+ProviderString    = "Network Observatory"
+NetObsFilter_Desc = "Network Observatory Filter"
+DiskDescription   = "Network Observatory Driver Installation Disk"
