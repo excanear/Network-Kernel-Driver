@@ -59,6 +59,19 @@ Design completo: [`phase2-kernel-driver-design.md`](phase2-kernel-driver-design.
   plugin ficam registrados com ator e timestamp.
 - **Banco de dados**: suporte PostgreSQL/TimescaleDB como alternativa ao
   SQLite para séries temporais em escala.
+- ✅ **Windows Service / daemon systemd real** (`crates/service/src/win_service.rs`,
+  flag `--service`, `scripts/install-windows-service.ps1` /
+  `scripts/install-linux-daemon.sh` + unit file): `network-observatoryd` pode
+  rodar sob a Service Control Manager do Windows ou como daemon systemd no
+  Linux, não só como processo de console.
+- ✅ **Testes automatizados**: unitários em `collector-linux` (parsing de
+  `/proc/net/dev`), `health`, `alerts` (motor de regras), `store` (SQLite
+  histórico/alertas/auth em memória), `topology`, `reports` (todos os 5
+  formatos), e testes Vitest no web (`rate.ts`, `theme.ts`) — todos passando
+  em Windows e Linux (validado via WSL2).
+- ✅ **CI** (`.github/workflows/ci.yml`): build+test Rust em matriz
+  Windows/Linux, build+test do web em Ubuntu, a cada push/PR para `master`.
+  Sem métricas de cobertura formais (`cargo-tarpaulin`/`codecov`) ainda.
 
 ## Fase 4 — IA e Desktop
 

@@ -242,3 +242,95 @@ impl AlertEngine {
         result
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use chrono::Utc;
+    use collector_core::{CollectorSource, Duplex};
+
+    fn sample(
+        oper_status: OperStatus,
+        rx_packets: u64,
+        rx_drops: u64,
+        link_speed_bps: Option<u64>,
+    ) -> InterfaceStats {
+        InterfaceStats {
+            index: 1,
+            name: "eth0".into(),
+            description: String::new(),
+            mac_address: String::new(),
+            mtu: 1500,
+            oper_status,
+            link_speed_bps,
+            duplex: Some(Duplex::Full),
+            if_type: "Ethernet".into(),
+            ipv4_addresses: vec!["10.0.0.2".into()],
+            ipv6_addresses: vec![],
+            rx_bytes: 0,
+            tx_bytes: 0,
+            rx_packets,
+            tx_packets: 0,
+            rx_errors: 0,
+            tx_errors: 0,
+            rx_drops,
+            tx_drops: 0,
+            rx_broadcast_packets: None,
+            rx_multicast_packets: None,
+            timestamp: Utc::now(),
+            collector_source: CollectorSource::WindowsIpHelper,
+        }
+    }
+
+    #[test]
+    fn link_down_triggers_once_then_resolves_on_recovery() {
+        let mut engine = AlertEngine::new(AlertRuleConfig::default());
+        let down = sample(OperStatus::Down, 0, 0, Some(1_000_000_000));
+        let up = sample(OperStatus::Up, 0, 0, Some(1_000_000_000));
+
+        let first = engine.evaluate(None, &down);
+        assert_eq!(first.triggered.len(), 1);
+        assert_eq!(first.triggered[0].kind, AlertKind::LinkDown);
+
+        // Same condition on the next tick must not re-trigger.
+        let second = engine.evaluate(Some(&down), &down);
+        assert!(second.triggered.is_empty());
+
+        let recovered = engine.evaluate(Some(&down), &up);
+        assert_eq!(recovered.resolved.len(), 1);
+        assert_eq!(recovered.resolved[0].kind, AlertKind::LinkDown);
+    }
+
+    #[test]
+    fn packet_loss_above_threshold_triggers() {
+        let mut engine = AlertEngine::new(AlertRuleConfig::default());
+        let prev = sample(OperStatus::Up, 0, 0, Some(1_000_000_000));
+        let cur = sample(OperStatus::Up, 100, 50, Some(1_000_000_000)); // 33% loss
+
+        let result = engine.evaluate(Some(&prev), &cur);
+        assert!(result.triggered.iter().any(|a| a.kind == AlertKind::PacketLossHigh));
+    }
+
+    #[test]
+    fn speed_degradation_detected_against_historical_max() {
+        let mut engine = AlertEngine::new(AlertRuleConfig::default());
+        let fast = sample(OperStatus::Up, 0, 0, Some(1_000_000_000));
+        let slow = sample(OperStatus::Up, 100, 0, Some(100_000_000)); // 10x slower
+
+        engine.evaluate(None, &fast);
+        let result = engine.evaluate(Some(&fast), &slow);
+        assert!(result.triggered.iter().any(|a| a.kind == AlertKind::SpeedDegraded));
+    }
+
+    #[test]
+    fn ip_change_triggers_info_alert() {
+        let mut engine = AlertEngine::new(AlertRuleConfig::default());
+        let mut prev = sample(OperStatus::Up, 0, 0, Some(1_000_000_000));
+        prev.ipv4_addresses = vec!["10.0.0.2".into()];
+        let mut cur = sample(OperStatus::Up, 0, 0, Some(1_000_000_000));
+        cur.ipv4_addresses = vec!["10.0.0.99".into()];
+
+        let result = engine.evaluate(Some(&prev), &cur);
+        assert!(result.triggered.iter().any(|a| a.kind == AlertKind::IpAddressChanged));
+    }
+}

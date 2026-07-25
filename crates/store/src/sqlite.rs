@@ -228,3 +228,72 @@ impl HistoryStore for SqliteHistoryStore {
         Ok(results)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use collector_core::CollectorSource;
+    use chrono::Duration;
+
+    fn sample(index: u32, rx_bytes: u64, ts: DateTime<Utc>) -> InterfaceStats {
+        InterfaceStats {
+            index,
+            name: "eth0".into(),
+            description: String::new(),
+            mac_address: "AA:BB:CC:DD:EE:FF".into(),
+            mtu: 1500,
+            oper_status: OperStatus::Up,
+            link_speed_bps: Some(1_000_000_000),
+            duplex: Some(Duplex::Full),
+            if_type: "Ethernet".into(),
+            ipv4_addresses: vec!["10.0.0.2".into()],
+            ipv6_addresses: vec![],
+            rx_bytes,
+            tx_bytes: 0,
+            rx_packets: 0,
+            tx_packets: 0,
+            rx_errors: 0,
+            tx_errors: 0,
+            rx_drops: 0,
+            tx_drops: 0,
+            rx_broadcast_packets: None,
+            rx_multicast_packets: None,
+            timestamp: ts,
+            collector_source: CollectorSource::WindowsIpHelper,
+        }
+    }
+
+    #[test]
+    fn insert_and_query_range_roundtrips() {
+        let store = SqliteHistoryStore::in_memory().expect("open in-memory store");
+        let now = Utc::now();
+
+        store.insert_sample(&sample(1, 100, now - Duration::seconds(20))).unwrap();
+        store.insert_sample(&sample(1, 200, now - Duration::seconds(10))).unwrap();
+        store.insert_sample(&sample(2, 999, now)).unwrap(); // different interface
+
+        let results = store
+            .query_range(1, now - Duration::minutes(1), now + Duration::minutes(1), 10)
+            .unwrap();
+
+        assert_eq!(results.len(), 2);
+        assert!(results.iter().all(|s| s.index == 1));
+        // Results are ordered most-recent-first.
+        assert_eq!(results[0].rx_bytes, 200);
+        assert_eq!(results[1].rx_bytes, 100);
+    }
+
+    #[test]
+    fn query_range_respects_limit() {
+        let store = SqliteHistoryStore::in_memory().expect("open in-memory store");
+        let now = Utc::now();
+        for i in 0..5 {
+            store.insert_sample(&sample(1, i, now - Duration::seconds(i as i64))).unwrap();
+        }
+
+        let results = store
+            .query_range(1, now - Duration::minutes(1), now + Duration::minutes(1), 2)
+            .unwrap();
+        assert_eq!(results.len(), 2);
+    }
+}

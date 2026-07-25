@@ -16,7 +16,7 @@ chrono.workspace = true
 tokio.workspace = true
 anyhow.workspace = true
 clap = { version = "4", features = ["derive"] }
-reqwest = { version = "0.12", features = ["json"] }
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
 tokio-tungstenite = "0.23"
 futures-util = "0.3"
 url = "2"

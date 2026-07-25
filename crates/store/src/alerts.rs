@@ -141,3 +141,44 @@ impl AlertStore for SqliteAlertStore {
         Ok(out)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn sample_alert(id: &str) -> Alert {
+        Alert {
+            id: id.to_string(),
+            if_index: 1,
+            if_name: "eth0".into(),
+            kind: AlertKind::LinkDown,
+            severity: AlertSeverity::Critical,
+            message: "Link down on eth0".into(),
+            triggered_at: Utc::now(),
+            resolved_at: None,
+        }
+    }
+
+    #[test]
+    fn insert_and_list_active_roundtrips() {
+        let store = SqliteAlertStore::open(":memory:").expect("open in-memory store");
+        store.insert_alert(&sample_alert("a1")).unwrap();
+
+        let active = store.list_active().unwrap();
+        assert_eq!(active.len(), 1);
+        assert_eq!(active[0].id, "a1");
+    }
+
+    #[test]
+    fn resolving_removes_from_active_list() {
+        let store = SqliteAlertStore::open(":memory:").expect("open in-memory store");
+        let mut alert = sample_alert("a2");
+        store.insert_alert(&alert).unwrap();
+
+        alert.resolved_at = Some(Utc::now());
+        store.insert_alert(&alert).unwrap(); // INSERT OR REPLACE
+
+        assert!(store.list_active().unwrap().is_empty());
+        assert_eq!(store.list_recent(10).unwrap().len(), 1);
+    }
+}

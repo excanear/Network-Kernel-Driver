@@ -95,6 +95,10 @@ struct ProcCounters {
 /// columns: face|rx bytes packets errs drop fifo frame compressed multicast|tx bytes packets errs drop fifo colls carrier compressed
 fn parse_proc_net_dev() -> Result<HashMap<String, ProcCounters>, CollectorError> {
     let content = fs::read_to_string("/proc/net/dev")?;
+    Ok(parse_proc_net_dev_str(&content))
+}
+
+fn parse_proc_net_dev_str(content: &str) -> HashMap<String, ProcCounters> {
     let mut map = HashMap::new();
 
     for line in content.lines().skip(2) {
@@ -126,7 +130,7 @@ fn parse_proc_net_dev() -> Result<HashMap<String, ProcCounters>, CollectorError>
         );
     }
 
-    Ok(map)
+    map
 }
 
 fn sys_read_trimmed(iface: &str, file: &str) -> Option<String> {
@@ -234,5 +238,41 @@ impl InterfaceCollector for LinuxCollector {
 
     fn platform_name(&self) -> &'static str {
         "LinuxProcSys"
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const SAMPLE_PROC_NET_DEV: &str = "Inter-|   Receive                                                |  Transmit\n face |bytes    packets errs drop fifo frame compressed multicast|bytes    packets errs drop fifo colls carrier compressed\n    lo: 1234       10    0    0    0     0          0         0     1234       10    0    0    0     0       0          0\n  eth0: 1000000   500    1    2    0     0          0         5   200000      300    0    0    0     0       0          0\n";
+
+    #[test]
+    fn parses_interface_counters_from_proc_net_dev() {
+        let counters = parse_proc_net_dev_str(SAMPLE_PROC_NET_DEV);
+
+        assert_eq!(counters.len(), 2);
+        let eth0 = counters.get("eth0").expect("eth0 present");
+        assert_eq!(eth0.rx_bytes, 1_000_000);
+        assert_eq!(eth0.rx_packets, 500);
+        assert_eq!(eth0.rx_errors, 1);
+        assert_eq!(eth0.rx_drops, 2);
+        assert_eq!(eth0.rx_multicast_packets, 5);
+        assert_eq!(eth0.tx_bytes, 200_000);
+        assert_eq!(eth0.tx_packets, 300);
+    }
+
+    #[test]
+    fn if_type_name_maps_known_arphrd_values() {
+        assert_eq!(if_type_name(1), "Ethernet");
+        assert_eq!(if_type_name(772), "Loopback");
+        assert_eq!(if_type_name(9999), "Other(9999)");
+    }
+
+    #[test]
+    fn oper_status_from_str_handles_known_and_unknown_values() {
+        assert_eq!(oper_status_from_str("up"), OperStatus::Up);
+        assert_eq!(oper_status_from_str("down"), OperStatus::Down);
+        assert_eq!(oper_status_from_str("bogus"), OperStatus::Unknown);
     }
 }

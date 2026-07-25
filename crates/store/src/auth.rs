@@ -143,3 +143,36 @@ impl AuthStore for SqliteAuthStore {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn wrong_password_does_not_authenticate() {
+        let store = SqliteAuthStore::open(":memory:").expect("open in-memory store");
+        store.create_user("alice", "correct-horse").unwrap();
+
+        assert!(store.verify_login("alice", "wrong-password").unwrap().is_none());
+        assert!(store.verify_login("alice", "correct-horse").unwrap().is_some());
+    }
+
+    #[test]
+    fn session_lifecycle_create_validate_delete() {
+        let store = SqliteAuthStore::open(":memory:").expect("open in-memory store");
+        let user = store.create_user("bob", "hunter2").unwrap();
+
+        let token = store.create_session(user.id).unwrap();
+        let validated = store.validate_session(&token).unwrap();
+        assert_eq!(validated.map(|u| u.username), Some("bob".to_string()));
+
+        store.delete_session(&token).unwrap();
+        assert!(store.validate_session(&token).unwrap().is_none());
+    }
+
+    #[test]
+    fn unknown_token_does_not_validate() {
+        let store = SqliteAuthStore::open(":memory:").expect("open in-memory store");
+        assert!(store.validate_session("nonexistent").unwrap().is_none());
+    }
+}
