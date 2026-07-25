@@ -23,6 +23,10 @@ driver/windows/*.lib
 driver/windows/*.cat
 driver/windows/*.pfx
 
+# .NET desktop app (Phase N)
+desktop/**/bin/
+desktop/**/obj/
+
 # OS/editor
 .DS_Store
 Thumbs.db

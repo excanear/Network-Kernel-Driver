@@ -62,6 +62,7 @@ npm run dev
 - `crates/cli` — binário `network`, CLI estilo `nvidia-smi`/`kubectl`.
 - `driver/windows`, `driver/linux` — placeholders para o driver de modo kernel real (Fase 2).
 - `web/` — dashboard Next.js/React/TypeScript.
+- `desktop/NetworkObservatory.Desktop` — dashboard nativo Windows (WPF), ver `desktop/README.md`.
 - `docs/` — arquitetura completa, modelo de dados, especificação de API e roadmap.
 
 ## Documentação

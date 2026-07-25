@@ -88,9 +88,11 @@ Design completo: [`phase2-kernel-driver-design.md`](phase2-kernel-driver-design.
   mudanças, responder perguntas em linguagem natural ("o que aconteceu nas
   últimas 24h?", "por que a latência aumentou?"), sempre fundamentado nos
   dados coletados (RAG sobre o histórico, não geração livre).
-- **Dashboard Desktop** (WPF/WinUI): mesma API REST/WS/gRPC do web, UI
-  premium inspirada em Grafana/Datadog/GlassWire/Intel Performance Analyzer,
-  painéis desacoplados e widgets configuráveis.
+- ✅ **Dashboard Desktop** (`desktop/NetworkObservatory.Desktop`, WPF em vez
+  de WinUI 3 — ver `desktop/README.md` para o motivo): consome a mesma API
+  REST do web/CLI, lista de interfaces com status/MAC/throughput e alertas
+  ativos, tema escuro, atualização ao vivo a cada 2s. Painéis desacoplados,
+  widgets configuráveis e páginas de topologia/relatórios ficam no roadmap.
 - ✅ **Multiusuário/autenticação** (`crates/store/src/auth.rs`, `POST
   /api/v1/auth/login|logout`, `GET /api/v1/auth/me`): usuários e sessões reais
   em SQLite, senha com hash argon2, sessão via cookie HttpOnly. Bootstrap

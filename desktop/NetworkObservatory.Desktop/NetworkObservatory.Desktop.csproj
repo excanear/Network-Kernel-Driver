@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    WPF, not WinUI 3: WinUI 3's MSIX/Appx packaging build tasks
+    (Microsoft.Build.Packaging.Pri.Tasks.dll) require a Visual Studio
+    component this machine doesn't have installed, and installing it needs
+    elevated access this session doesn't have (see docs/roadmap.md Phase N).
+    WPF ships fully inside the plain .NET SDK — no extra component, no
+    elevation — while still being a real native Windows desktop app
+    consuming the same REST API as the web dashboard and CLI.
+  -->
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <RootNamespace>NetworkObservatory.Desktop</RootNamespace>
+    <UseWPF>true</UseWPF>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+</Project>
