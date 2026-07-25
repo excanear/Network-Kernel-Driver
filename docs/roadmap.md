@@ -18,9 +18,13 @@ Design completo: [`phase2-kernel-driver-design.md`](phase2-kernel-driver-design.
 - **Histórico multi-intervalo**: rollups automáticos (1m, 5m, 15m, 30m, 1h,
   6h, 12h, 24h, 7d, 30d, 365d) sobre a base já lançada na Fase 1 (SQLite →
   Postgres/TimescaleDB via `HistoryStore`), com comparação entre períodos.
-- **Topologia**: detecção automática de NIC, gateway, DNS, VPN, interfaces
-  virtuais (Hyper-V, Docker, WSL, VMware, VirtualBox), grafo interativo
-  (Cytoscape.js) na Camada 6.
+- ✅ **Topologia** (`crates/topology`, `GET /api/v1/topology`, `network
+  topology`, página web `/topology`): detecção automática de NIC ativa,
+  gateway (via IP Helper API / `/proc/net/route`), DNS configurado (via
+  `GetAdaptersAddresses` / `/etc/resolv.conf`), classificação heurística de
+  interfaces virtuais (Hyper-V, Docker, WSL, VMware, VirtualBox, VPN/TAP/TUN),
+  grafo interativo (Cytoscape.js). Detecção de switch físico fica fora de
+  escopo (não observável sem SNMP/LLDP a um equipamento gerenciável).
 - ✅ **Health score** (`crates/health`, `GET /api/v1/health[/:index]`, `network
   statistics`): disponibilidade, estabilidade (mudanças de link), perda de
   pacotes e taxa de erros, agregados num score 0-100 por interface a partir do

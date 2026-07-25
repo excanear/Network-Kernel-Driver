@@ -13,6 +13,7 @@ collector-core = { path = "../collector-core" }
 store = { path = "../store" }
 alerts = { path = "../alerts" }
 health = { path = "../health" }
+topology = { path = "../topology" }
 serde.workspace = true
 serde_json.workspace = true
 chrono.workspace = true

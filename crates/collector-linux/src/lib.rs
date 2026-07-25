@@ -9,6 +9,60 @@ use collector_core::{
     Snapshot,
 };
 
+/// Default gateway per interface index (from `/proc/net/route`) plus DNS
+/// servers configured in `/etc/resolv.conf` — used by `crates/topology` to
+/// build the network graph without requiring the real kernel module (Phase 2).
+pub fn discover_network_config() -> (Vec<(u32, String)>, Vec<String>) {
+    let gateways = parse_proc_net_route().unwrap_or_default();
+    let dns_servers = parse_resolv_conf().unwrap_or_default();
+    (gateways, dns_servers)
+}
+
+fn if_index_for(name: &str) -> Option<u32> {
+    sys_read_trimmed(name, "ifindex").and_then(|s| s.parse().ok())
+}
+
+fn parse_proc_net_route() -> Result<Vec<(u32, String)>, CollectorError> {
+    let content = fs::read_to_string("/proc/net/route")?;
+    let mut gateways = Vec::new();
+    for line in content.lines().skip(1) {
+        let fields: Vec<&str> = line.split_whitespace().collect();
+        if fields.len() < 3 {
+            continue;
+        }
+        let (iface, destination, gateway_hex) = (fields[0], fields[1], fields[2]);
+        if destination != "00000000" {
+            continue; // only the default route
+        }
+        if let Ok(raw) = u32::from_str_radix(gateway_hex, 16) {
+            if raw == 0 {
+                continue;
+            }
+            let bytes = raw.to_le_bytes();
+            let ip = std::net::Ipv4Addr::from(bytes).to_string();
+            if let Some(index) = if_index_for(iface) {
+                gateways.push((index, ip));
+            }
+        }
+    }
+    Ok(gateways)
+}
+
+fn parse_resolv_conf() -> Result<Vec<String>, CollectorError> {
+    let content = fs::read_to_string("/etc/resolv.conf")?;
+    let mut servers = Vec::new();
+    for line in content.lines() {
+        let line = line.trim();
+        if let Some(rest) = line.strip_prefix("nameserver") {
+            let ip = rest.trim();
+            if !ip.is_empty() {
+                servers.push(ip.to_string());
+            }
+        }
+    }
+    Ok(servers)
+}
+
 pub struct LinuxCollector;
 
 impl LinuxCollector {

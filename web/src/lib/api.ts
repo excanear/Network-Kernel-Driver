@@ -1,4 +1,4 @@
-import type { Snapshot, StatusResponse } from "./types";
+import type { Alert, HealthScore, Snapshot, StatusResponse, TopologyGraph } from "./types";
 
 const BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:7878/api/v1";
@@ -20,4 +20,20 @@ export function getStatus(): Promise<StatusResponse> {
 
 export function getInterfaces(): Promise<Snapshot> {
   return getJson<Snapshot>("/interfaces");
+}
+
+export function getTopology(): Promise<TopologyGraph> {
+  return getJson<TopologyGraph>("/topology");
+}
+
+export function getHealth(): Promise<HealthScore[]> {
+  return getJson<HealthScore[]>("/health");
+}
+
+export function getActiveAlerts(): Promise<Alert[]> {
+  return getJson<Alert[]>("/alerts");
+}
+
+export function getRecentAlerts(limit = 100): Promise<Alert[]> {
+  return getJson<Alert[]>(`/alerts/recent?limit=${limit}`);
 }

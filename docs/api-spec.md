@@ -15,6 +15,7 @@ Base local de desenvolvimento: `http://localhost:7878/api/v1`
 | GET | `/health/:index` | Health score de uma interface |
 | GET | `/alerts` | Alertas atualmente ativos |
 | GET | `/alerts/recent?limit=` | Alertas recentes (ativos + resolvidos) |
+| GET | `/topology` | Grafo de topologia (nós + arestas) |
 
 Respostas em JSON, serializando `Snapshot`/`InterfaceStats` (ver
 [`data-model.md`](data-model.md)) via `serde`.
@@ -113,7 +114,8 @@ padrão, `--json` para automação.
 | `network history --interface <n> [--from] [--to] [--limit]` | Chama `/interfaces/:index/history` |
 | `network alerts [--all]` | Alertas ativos (ou recentes com `--all`) |
 | `network statistics` | Health score agregado por interface |
+| `network topology` | Grafo de topologia em texto |
 
 **Stubados (parseados, imprimem "não implementado ainda" com referência ao roadmap):**
 
-`network topology`, `network export`.
+`network export`.

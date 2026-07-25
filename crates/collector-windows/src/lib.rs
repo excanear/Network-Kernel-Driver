@@ -69,28 +69,94 @@ unsafe fn wide_ptr_to_string(ptr: *const u16) -> String {
     String::from_utf16_lossy(slice)
 }
 
+unsafe fn sockaddr_to_ip(lp_sockaddr: *const windows::Win32::Networking::WinSock::SOCKADDR) -> Option<String> {
+    if lp_sockaddr.is_null() {
+        return None;
+    }
+    let family = (*lp_sockaddr).sa_family;
+    if family == windows::Win32::Networking::WinSock::AF_INET {
+        let sockaddr_in = &*(lp_sockaddr as *const SOCKADDR_IN);
+        let bytes = sockaddr_in.sin_addr.S_un.S_addr.to_ne_bytes();
+        Some(IpAddr::from([bytes[0], bytes[1], bytes[2], bytes[3]]).to_string())
+    } else if family == windows::Win32::Networking::WinSock::AF_INET6 {
+        let sockaddr_in6 = &*(lp_sockaddr as *const SOCKADDR_IN6);
+        Some(IpAddr::from(sockaddr_in6.sin6_addr.u.Byte).to_string())
+    } else {
+        None
+    }
+}
+
 unsafe fn read_ip_addresses(adapter: &IP_ADAPTER_ADDRESSES_LH) -> (Vec<String>, Vec<String>) {
     let mut ipv4 = Vec::new();
     let mut ipv6 = Vec::new();
     let mut unicast = adapter.FirstUnicastAddress;
     while !unicast.is_null() {
         let addr = (*unicast).Address;
-        if !addr.lpSockaddr.is_null() {
-            let family = (*addr.lpSockaddr).sa_family;
-            if family == windows::Win32::Networking::WinSock::AF_INET {
-                let sockaddr_in = &*(addr.lpSockaddr as *const SOCKADDR_IN);
-                let bytes = sockaddr_in.sin_addr.S_un.S_addr.to_ne_bytes();
-                let ip = IpAddr::from([bytes[0], bytes[1], bytes[2], bytes[3]]);
-                ipv4.push(ip.to_string());
-            } else if family == windows::Win32::Networking::WinSock::AF_INET6 {
-                let sockaddr_in6 = &*(addr.lpSockaddr as *const SOCKADDR_IN6);
-                let ip = IpAddr::from(sockaddr_in6.sin6_addr.u.Byte);
-                ipv6.push(ip.to_string());
-            }
+        match sockaddr_to_ip(addr.lpSockaddr) {
+            Some(ip) if ip.contains(':') => ipv6.push(ip),
+            Some(ip) => ipv4.push(ip),
+            None => {}
         }
         unicast = (*unicast).Next;
     }
     (ipv4, ipv6)
+}
+
+/// Default gateway per interface index, plus the DNS servers configured
+/// system-wide — used by `crates/topology` to build the network graph
+/// without requiring the real kernel driver (Phase 2).
+pub fn discover_network_config() -> (Vec<(u32, String)>, Vec<String>) {
+    unsafe { discover_network_config_inner().unwrap_or_default() }
+}
+
+unsafe fn discover_network_config_inner() -> Result<(Vec<(u32, String)>, Vec<String>), CollectorError> {
+    let mut size: u32 = 15_000;
+    let mut buffer: Vec<u8>;
+    let flags = GAA_FLAG_INCLUDE_PREFIX;
+
+    loop {
+        buffer = vec![0u8; size as usize];
+        let adapter_addresses = buffer.as_mut_ptr() as *mut IP_ADAPTER_ADDRESSES_LH;
+        let result = GetAdaptersAddresses(AF_UNSPEC.0 as u32, flags, None, Some(adapter_addresses), &mut size);
+        if result == ERROR_SUCCESS.0 {
+            break;
+        } else if result == ERROR_BUFFER_OVERFLOW.0 {
+            continue;
+        } else {
+            return Err(CollectorError::PlatformApi(format!("GetAdaptersAddresses failed: {result}")));
+        }
+    }
+
+    let mut gateways = Vec::new();
+    let mut dns_servers = Vec::new();
+    let mut current = buffer.as_ptr() as *const IP_ADAPTER_ADDRESSES_LH;
+
+    while !current.is_null() {
+        let adapter = &*current;
+        let index = adapter.Anonymous1.Anonymous.IfIndex;
+
+        let mut gw = adapter.FirstGatewayAddress;
+        while !gw.is_null() {
+            if let Some(ip) = sockaddr_to_ip((*gw).Address.lpSockaddr) {
+                gateways.push((index, ip));
+            }
+            gw = (*gw).Next;
+        }
+
+        let mut dns = adapter.FirstDnsServerAddress;
+        while !dns.is_null() {
+            if let Some(ip) = sockaddr_to_ip((*dns).Address.lpSockaddr) {
+                if !dns_servers.contains(&ip) {
+                    dns_servers.push(ip);
+                }
+            }
+            dns = (*dns).Next;
+        }
+
+        current = adapter.Next;
+    }
+
+    Ok((gateways, dns_servers))
 }
 
 struct CounterRow {

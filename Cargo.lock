@@ -1733,6 +1733,7 @@ dependencies = [
  "tokio-stream",
  "tonic",
  "tonic-build",
+ "topology",
  "tower-http 0.5.2",
  "tracing",
  "tracing-subscriber",
@@ -2080,6 +2081,15 @@ dependencies = [
  "prost-types",
  "quote",
  "syn 2.0.119",
+]
+
+[[package]]
+name = "topology"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "collector-core",
+ "serde",
 ]
 
 [[package]]

@@ -79,7 +79,7 @@ async fn main() -> anyhow::Result<()> {
             to,
             limit,
         } => commands::history::run(&base_url, interface, from, to, limit).await?,
-        Commands::Topology => commands::not_implemented("topology"),
+        Commands::Topology => commands::topology::run(&base_url).await?,
         Commands::Export => commands::not_implemented("export"),
         Commands::Alerts { all } => commands::alerts::run(&base_url, all).await?,
         Commands::Statistics => commands::statistics::run(&base_url).await?,

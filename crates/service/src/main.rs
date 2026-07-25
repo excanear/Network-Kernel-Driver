@@ -3,6 +3,7 @@ mod grpc;
 mod health_routes;
 mod poller;
 mod routes;
+mod topology_routes;
 mod ws;
 
 use std::net::SocketAddr;
@@ -96,6 +97,7 @@ async fn main() -> anyhow::Result<()> {
         .route("/api/v1/health/:index", get(health_routes::get_health_one))
         .route("/api/v1/alerts", get(alert_routes::get_active_alerts))
         .route("/api/v1/alerts/recent", get(alert_routes::get_recent_alerts))
+        .route("/api/v1/topology", get(topology_routes::get_topology))
         .layer(cors)
         .layer(TraceLayer::new_for_http())
         .with_state(state);

@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { InterfaceList } from "@/components/InterfaceList";
+import { Nav } from "@/components/Nav";
 import { ThroughputChart } from "@/components/ThroughputChart";
 import { getInterfaces } from "@/lib/api";
 import type { InterfaceStats } from "@/lib/types";
@@ -53,7 +54,8 @@ export default function LiveOverviewPage() {
 
   return (
     <main style={{ minHeight: "100vh", padding: "24px 32px", maxWidth: 1200, margin: "0 auto" }}>
-      <header style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 24 }}>
+      <Nav active="overview" />
+      <header style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", margin: "16px 0 24px" }}>
         <div>
           <h1 style={{ fontSize: 22, fontWeight: 600, margin: 0, color: theme.textPrimary }}>
             Network Observatory

@@ -4,6 +4,7 @@ pub mod interfaces;
 pub mod monitor;
 pub mod statistics;
 pub mod status;
+pub mod topology;
 
 pub fn not_implemented(command: &str) {
     println!(
