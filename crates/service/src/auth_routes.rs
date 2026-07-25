@@ -26,11 +26,16 @@ pub async fn login(
     jar: CookieJar,
     Json(req): Json<LoginRequest>,
 ) -> Result<(CookieJar, Json<UserResponse>), (StatusCode, String)> {
-    let user = state
+    let login_result = state
         .auth_store
         .verify_login(&req.username, &req.password)
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
-        .ok_or((StatusCode::UNAUTHORIZED, "invalid username or password".to_string()))?;
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+
+    let Some(user) = login_result else {
+        let _ = state.audit_store.record("auth.login_failed", &req.username, "invalid credentials");
+        return Err((StatusCode::UNAUTHORIZED, "invalid username or password".to_string()));
+    };
+    let _ = state.audit_store.record("auth.login_success", &user.username, "");
 
     let token = state
         .auth_store
@@ -51,6 +56,9 @@ pub async fn logout(
     jar: CookieJar,
 ) -> (CookieJar, StatusCode) {
     if let Some(cookie) = jar.get(SESSION_COOKIE) {
+        if let Ok(Some(user)) = state.auth_store.validate_session(cookie.value()) {
+            let _ = state.audit_store.record("auth.logout", &user.username, "");
+        }
         let _ = state.auth_store.delete_session(cookie.value());
     }
     (jar.remove(Cookie::from(SESSION_COOKIE)), StatusCode::NO_CONTENT)

@@ -53,7 +53,7 @@ pub struct RunQuery {
 }
 
 pub async fn run_plugin(
-    State(_state): State<Arc<AppState>>,
+    State(state): State<Arc<AppState>>,
     Path(name): Path<String>,
     Query(query): Query<RunQuery>,
 ) -> Result<Json<PluginResult>, (StatusCode, String)> {
@@ -62,7 +62,7 @@ pub async fn run_plugin(
 
     let mut cmd = Command::new(&path);
     cmd.arg(RUN_ARG);
-    if let Some(target) = query.target {
+    if let Some(target) = &query.target {
         cmd.arg("--target").arg(target);
     }
 
@@ -70,7 +70,14 @@ pub async fn run_plugin(
         .output()
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("failed to spawn plugin: {e}")))?;
 
-    serde_json::from_slice::<PluginResult>(&output.stdout)
-        .map(Json)
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("invalid plugin output: {e}")))
+    let result = serde_json::from_slice::<PluginResult>(&output.stdout)
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("invalid plugin output: {e}")))?;
+
+    let _ = state.audit_store.record(
+        "plugin.run",
+        "system",
+        &format!("plugin={name} target={}", query.target.as_deref().unwrap_or("default")),
+    );
+
+    Ok(Json(result))
 }

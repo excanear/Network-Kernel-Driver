@@ -22,6 +22,7 @@ Base local de desenvolvimento: `http://localhost:7878/api/v1`
 | POST | `/auth/login` | `{username,password}` → seta cookie de sessão |
 | POST | `/auth/logout` | Invalida a sessão atual |
 | GET | `/auth/me` | Usuário autenticado atual (401 se não logado) |
+| GET | `/audit?limit=` | Trilha de auditoria recente (login, alertas, plugins) |
 
 Rotas protegidas (todas exceto `/auth/*` e `/version`) exigem sessão válida
 apenas quando `NETOBS_AUTH_REQUIRED=true` (padrão: `false`).

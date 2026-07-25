@@ -1,4 +1,5 @@
 mod alert_routes;
+mod audit_routes;
 mod auth_middleware;
 mod auth_routes;
 mod grpc;
@@ -20,7 +21,10 @@ use axum::http::{HeaderValue, Method};
 use axum::routing::{get, post};
 use axum::Router;
 use collector_core::InterfaceCollector;
-use store::{AuthStore, RingBufferStore, SqliteAlertStore, SqliteAuthStore, SqliteHistoryStore};
+use store::{
+    AuthStore, RingBufferStore, SqliteAlertStore, SqliteAuditStore, SqliteAuthStore,
+    SqliteHistoryStore,
+};
 use tokio::sync::{broadcast, Mutex as AsyncMutex};
 use tower_http::cors::{AllowHeaders, CorsLayer};
 use tower_http::trace::TraceLayer;
@@ -56,13 +60,37 @@ fn bootstrap_admin(auth_store: &dyn AuthStore) -> anyhow::Result<()> {
     Ok(())
 }
 
+/// Kept alive for the process lifetime so the non-blocking file writer keeps
+/// flushing — see docs/roadmap.md Phase J. `OnceLock` also makes
+/// `init_tracing` idempotent across the normal and Windows Service
+/// entrypoints, which may both call it.
+static LOG_GUARD: std::sync::OnceLock<tracing_appender::non_blocking::WorkerGuard> =
+    std::sync::OnceLock::new();
+
 fn init_tracing() {
-    // Avoid double-initialization when running under the Windows service
-    // dispatcher, which calls into this module from a different thread.
-    let _ = tracing_subscriber::fmt()
-        .with_env_filter(
-            tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| "info".into()),
-        )
+    if LOG_GUARD.get().is_some() {
+        return;
+    }
+
+    use tracing_subscriber::prelude::*;
+
+    let file_appender = tracing_appender::rolling::daily("logs", "network-observatoryd.log");
+    let (non_blocking, guard) = tracing_appender::non_blocking(file_appender);
+    let _ = LOG_GUARD.set(guard);
+
+    let env_filter = || {
+        tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| "info".into())
+    };
+
+    let stdout_layer = tracing_subscriber::fmt::layer().with_filter(env_filter());
+    let file_layer = tracing_subscriber::fmt::layer()
+        .with_ansi(false)
+        .with_writer(non_blocking)
+        .with_filter(env_filter());
+
+    let _ = tracing_subscriber::registry()
+        .with(stdout_layer)
+        .with(file_layer)
         .try_init();
 }
 
@@ -80,6 +108,8 @@ pub async fn run_server() -> anyhow::Result<()> {
         Arc::new(SqliteAlertStore::open("network-observatory.db")?);
     let auth_store: Arc<dyn store::AuthStore> =
         Arc::new(SqliteAuthStore::open("network-observatory.db")?);
+    let audit_store: Arc<dyn store::AuditStore> =
+        Arc::new(SqliteAuditStore::open("network-observatory.db")?);
     bootstrap_admin(auth_store.as_ref())?;
 
     let alert_engine = Arc::new(AsyncMutex::new(alerts::AlertEngine::new(
@@ -95,6 +125,7 @@ pub async fn run_server() -> anyhow::Result<()> {
         ring_buffer: ring_buffer.clone(),
         history: history.clone(),
         alert_store: alert_store.clone(),
+        audit_store: audit_store.clone(),
         alert_engine: alert_engine.clone(),
         tx: tx.clone(),
         poll_interval,
@@ -108,6 +139,7 @@ pub async fn run_server() -> anyhow::Result<()> {
         history,
         alert_store,
         auth_store,
+        audit_store,
         tx,
         started_at: Instant::now(),
         poll_interval_ms: poll_interval.as_millis() as u64,
@@ -147,7 +179,8 @@ pub async fn run_server() -> anyhow::Result<()> {
         .route("/api/v1/topology", get(topology_routes::get_topology))
         .route("/api/v1/reports", get(report_routes::get_report))
         .route("/api/v1/plugins", get(plugin_routes::list_plugins))
-        .route("/api/v1/plugins/:name/run", get(plugin_routes::run_plugin));
+        .route("/api/v1/plugins/:name/run", get(plugin_routes::run_plugin))
+        .route("/api/v1/audit", get(audit_routes::get_audit_log));
 
     if auth_required {
         protected_routes = protected_routes.route_layer(axum::middleware::from_fn_with_state(

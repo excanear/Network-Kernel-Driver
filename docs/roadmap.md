@@ -52,7 +52,11 @@ Design completo: [`phase2-kernel-driver-design.md`](phase2-kernel-driver-design.
   adicionados como novos executáveis, sem alterar o core. Dashboards/gráficos
   plugáveis na Camada 6 ficam para quando houver um mecanismo de widgets
   dinâmicos no web (não implementado nesta fase).
-- **Logging estruturado com rotação** e trilha de auditoria completa.
+- ✅ **Logging estruturado com rotação** (`tracing-appender`, rotação diária em
+  `logs/network-observatoryd.log.<data>`, além de stdout) e **trilha de
+  auditoria** real (`crates/store/src/audit.rs`, `GET /api/v1/audit`):
+  login/logout, falhas de login, alertas disparados/resolvidos e execuções de
+  plugin ficam registrados com ator e timestamp.
 - **Banco de dados**: suporte PostgreSQL/TimescaleDB como alternativa ao
   SQLite para séries temporais em escala.
 

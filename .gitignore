@@ -11,6 +11,7 @@ web/.env*.local
 *.db
 *.sqlite
 *.sqlite3
+/logs/
 
 # OS/editor
 .DS_Store

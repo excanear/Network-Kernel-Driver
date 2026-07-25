@@ -4,7 +4,7 @@ use std::time::Duration;
 
 use alerts::AlertEngine;
 use collector_core::InterfaceCollector;
-use store::{AlertStore, HistoryStore, RingBufferStore};
+use store::{AlertStore, AuditStore, HistoryStore, RingBufferStore};
 use tokio::sync::{broadcast, Mutex};
 use tokio::time::interval;
 use tracing::{error, info, warn};
@@ -16,6 +16,7 @@ pub struct Poller {
     pub ring_buffer: Arc<RingBufferStore>,
     pub history: Arc<dyn HistoryStore>,
     pub alert_store: Arc<dyn AlertStore>,
+    pub audit_store: Arc<dyn AuditStore>,
     pub alert_engine: Arc<Mutex<AlertEngine>>,
     pub tx: broadcast::Sender<Snapshot>,
     pub poll_interval: Duration,
@@ -57,10 +58,25 @@ impl Poller {
                         for sample in &snapshot.interfaces {
                             let prev = prev_by_index.get(&sample.index);
                             let result = engine.evaluate(prev, sample);
-                            for alert in result.triggered.iter().chain(result.resolved.iter()) {
+                            for alert in &result.triggered {
                                 if let Err(e) = self.alert_store.insert_alert(alert) {
                                     warn!("failed to persist alert {}: {e}", alert.id);
                                 }
+                                let _ = self.audit_store.record(
+                                    "alert.triggered",
+                                    "system",
+                                    &format!("{:?} {} — {}", alert.severity, alert.if_name, alert.message),
+                                );
+                            }
+                            for alert in &result.resolved {
+                                if let Err(e) = self.alert_store.insert_alert(alert) {
+                                    warn!("failed to persist alert {}: {e}", alert.id);
+                                }
+                                let _ = self.audit_store.record(
+                                    "alert.resolved",
+                                    "system",
+                                    &format!("{} — {}", alert.if_name, alert.message),
+                                );
                             }
                         }
                     }
