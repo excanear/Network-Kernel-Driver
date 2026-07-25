@@ -7,6 +7,8 @@ use std::sync::Mutex;
 pub enum StoreError {
     #[error("sqlite error: {0}")]
     Sqlite(#[from] rusqlite::Error),
+    #[error("auth error: {0}")]
+    Auth(String),
 }
 
 /// Persistence contract for historical samples, implemented today by

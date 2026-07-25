@@ -65,8 +65,17 @@ Design completo: [`phase2-kernel-driver-design.md`](phase2-kernel-driver-design.
 - **Dashboard Desktop** (WPF/WinUI): mesma API REST/WS/gRPC do web, UI
   premium inspirada em Grafana/Datadog/GlassWire/Intel Performance Analyzer,
   painéis desacoplados e widgets configuráveis.
-- **Multiusuário** no dashboard web, com filtros/pesquisa/exportação
-  avançados.
+- ✅ **Multiusuário/autenticação** (`crates/store/src/auth.rs`, `POST
+  /api/v1/auth/login|logout`, `GET /api/v1/auth/me`): usuários e sessões reais
+  em SQLite, senha com hash argon2, sessão via cookie HttpOnly. Bootstrap
+  automático de um usuário `admin` com senha aleatória no primeiro start
+  (logada uma vez, padrão Grafana/Kibana). Web app inteiro fica atrás de tela
+  de login (`AuthGate`). Enforcement no nível de rota REST é opt-in via
+  `NETOBS_AUTH_REQUIRED=true` (desligado por padrão para não quebrar
+  automações existentes que já consomem a API sem sessão — CLI, gRPC,
+  integrações). Cadastro de múltiplos usuários hoje é via inserir diretamente
+  na tabela `users` ou endpoint futuro `/auth/register`; filtros/pesquisa
+  avançados na UI ficam no roadmap.
 
 ## Não planejado (fora de escopo permanente)
 

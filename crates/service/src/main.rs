@@ -1,4 +1,6 @@
 mod alert_routes;
+mod auth_middleware;
+mod auth_routes;
 mod grpc;
 mod health_routes;
 mod plugin_routes;
@@ -12,14 +14,16 @@ use std::net::SocketAddr;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
-use axum::routing::get;
+use axum::http::{HeaderValue, Method};
+use tower_http::cors::AllowHeaders;
+use axum::routing::{get, post};
 use axum::Router;
 use collector_core::InterfaceCollector;
-use store::{RingBufferStore, SqliteAlertStore, SqliteHistoryStore};
+use store::{AuthStore, RingBufferStore, SqliteAlertStore, SqliteAuthStore, SqliteHistoryStore};
 use tokio::sync::{broadcast, Mutex as AsyncMutex};
-use tower_http::cors::{Any, CorsLayer};
+use tower_http::cors::CorsLayer;
 use tower_http::trace::TraceLayer;
-use tracing::info;
+use tracing::{info, warn};
 
 use routes::AppState;
 
@@ -31,6 +35,24 @@ fn build_collector() -> Arc<dyn InterfaceCollector> {
 #[cfg(unix)]
 fn build_collector() -> Arc<dyn InterfaceCollector> {
     Arc::new(collector_linux::LinuxCollector::new())
+}
+
+/// Grafana/Kibana-style bootstrap: if no user exists yet, create a default
+/// admin with a random password logged once. Avoids a manual seeding step
+/// while never storing/printing a fixed default credential.
+fn bootstrap_admin(auth_store: &dyn AuthStore) -> anyhow::Result<()> {
+    if auth_store.user_count()? > 0 {
+        return Ok(());
+    }
+    use rand::Rng;
+    let password: String = rand::thread_rng()
+        .sample_iter(rand::distributions::Alphanumeric)
+        .take(16)
+        .map(char::from)
+        .collect();
+    auth_store.create_user("admin", &password)?;
+    warn!("bootstrapped default admin user — username=admin password={password} (change this; see docs/roadmap.md Phase H)");
+    Ok(())
 }
 
 #[tokio::main]
@@ -48,6 +70,10 @@ async fn main() -> anyhow::Result<()> {
         Arc::new(SqliteHistoryStore::open("network-observatory.db")?);
     let alert_store: Arc<dyn store::AlertStore> =
         Arc::new(SqliteAlertStore::open("network-observatory.db")?);
+    let auth_store: Arc<dyn store::AuthStore> =
+        Arc::new(SqliteAuthStore::open("network-observatory.db")?);
+    bootstrap_admin(auth_store.as_ref())?;
+
     let alert_engine = Arc::new(AsyncMutex::new(alerts::AlertEngine::new(
         alerts::AlertRuleConfig::default(),
     )));
@@ -73,6 +99,7 @@ async fn main() -> anyhow::Result<()> {
         ring_buffer,
         history,
         alert_store,
+        auth_store,
         tx,
         started_at: Instant::now(),
         poll_interval_ms: poll_interval.as_millis() as u64,
@@ -80,12 +107,23 @@ async fn main() -> anyhow::Result<()> {
 
     let state_for_grpc = state.clone();
 
+    let web_origin = std::env::var("NETOBS_WEB_ORIGIN").unwrap_or_else(|_| "http://localhost:3000".to_string());
     let cors = CorsLayer::new()
-        .allow_origin(Any)
-        .allow_methods(Any)
-        .allow_headers(Any);
+        .allow_origin(web_origin.parse::<HeaderValue>().expect("valid NETOBS_WEB_ORIGIN"))
+        .allow_methods([Method::GET, Method::POST])
+        .allow_headers(AllowHeaders::list([axum::http::header::CONTENT_TYPE]))
+        .allow_credentials(true);
 
-    let app = Router::new()
+    let auth_required = std::env::var("NETOBS_AUTH_REQUIRED").map(|v| v == "true").unwrap_or(false);
+    info!("auth enforcement on protected REST routes: {auth_required}");
+
+    let public_routes = Router::new()
+        .route("/api/v1/auth/login", post(auth_routes::login))
+        .route("/api/v1/auth/logout", post(auth_routes::logout))
+        .route("/api/v1/auth/me", get(auth_routes::me))
+        .route("/api/v1/version", get(routes::get_version));
+
+    let mut protected_routes = Router::new()
         .route("/api/v1/status", get(routes::get_status))
         .route("/api/v1/interfaces", get(routes::get_interfaces))
         .route("/api/v1/interfaces/:index", get(routes::get_interface))
@@ -93,7 +131,6 @@ async fn main() -> anyhow::Result<()> {
             "/api/v1/interfaces/:index/history",
             get(routes::get_interface_history),
         )
-        .route("/api/v1/version", get(routes::get_version))
         .route("/api/v1/ws/interfaces", get(ws::ws_interfaces))
         .route("/api/v1/health", get(health_routes::get_health_all))
         .route("/api/v1/health/:index", get(health_routes::get_health_one))
@@ -102,7 +139,17 @@ async fn main() -> anyhow::Result<()> {
         .route("/api/v1/topology", get(topology_routes::get_topology))
         .route("/api/v1/reports", get(report_routes::get_report))
         .route("/api/v1/plugins", get(plugin_routes::list_plugins))
-        .route("/api/v1/plugins/:name/run", get(plugin_routes::run_plugin))
+        .route("/api/v1/plugins/:name/run", get(plugin_routes::run_plugin));
+
+    if auth_required {
+        protected_routes = protected_routes.route_layer(axum::middleware::from_fn_with_state(
+            state.clone(),
+            auth_middleware::require_session,
+        ));
+    }
+
+    let app = public_routes
+        .merge(protected_routes)
         .layer(cors)
         .layer(TraceLayer::new_for_http())
         .with_state(state);

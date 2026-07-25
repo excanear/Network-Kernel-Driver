@@ -19,6 +19,12 @@ Base local de desenvolvimento: `http://localhost:7878/api/v1`
 | GET | `/reports?format=csv\|json\|html\|md\|pdf` | Relatório completo no formato pedido |
 | GET | `/plugins` | Lista plugins descobertos (manifestos) |
 | GET | `/plugins/:name/run?target=` | Executa um plugin agora |
+| POST | `/auth/login` | `{username,password}` → seta cookie de sessão |
+| POST | `/auth/logout` | Invalida a sessão atual |
+| GET | `/auth/me` | Usuário autenticado atual (401 se não logado) |
+
+Rotas protegidas (todas exceto `/auth/*` e `/version`) exigem sessão válida
+apenas quando `NETOBS_AUTH_REQUIRED=true` (padrão: `false`).
 
 Respostas em JSON, serializando `Snapshot`/`InterfaceStats` (ver
 [`data-model.md`](data-model.md)) via `serde`.
