@@ -1,0 +1,19 @@
+/target
+**/*.rs.bk
+
+# Web
+web/node_modules/
+web/.next/
+web/out/
+web/.env*.local
+
+# Data
+*.db
+*.sqlite
+*.sqlite3
+
+# OS/editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

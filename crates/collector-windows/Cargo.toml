@@ -1,0 +1,17 @@
+[package]
+name = "collector-windows"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+collector-core = { path = "../collector-core" }
+chrono.workspace = true
+
+[target.'cfg(windows)'.dependencies]
+windows = { version = "0.58", features = [
+    "Win32_Foundation",
+    "Win32_NetworkManagement_IpHelper",
+    "Win32_NetworkManagement_Ndis",
+    "Win32_Networking_WinSock",
+] }

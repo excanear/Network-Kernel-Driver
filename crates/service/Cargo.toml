@@ -1,0 +1,29 @@
+[package]
+name = "service"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "network-observatoryd"
+path = "src/main.rs"
+
+[dependencies]
+collector-core = { path = "../collector-core" }
+store = { path = "../store" }
+serde.workspace = true
+serde_json.workspace = true
+chrono.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+anyhow.workspace = true
+axum = { version = "0.7", features = ["ws"] }
+tower-http = { version = "0.5", features = ["cors", "trace"] }
+futures = "0.3"
+
+[target.'cfg(windows)'.dependencies]
+collector-windows = { path = "../collector-windows" }
+
+[target.'cfg(unix)'.dependencies]
+collector-linux = { path = "../collector-linux" }
