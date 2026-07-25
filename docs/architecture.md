@@ -10,7 +10,7 @@ exploração de tráfego.
 ┌──────────────────────────────────────────────────────────────────────┐
 │ Camada 6 — Web Dashboard (Next.js/React/TS, D3/ECharts/Cytoscape.js)│
 ├──────────────────────────────────────────────────────────────────────┤
-│ Camada 5 — Desktop Dashboard (WPF/WinUI/Qt)                — Fase 4 │
+│ Camada 5 — Desktop Dashboard (WPF, .NET 8)                          │
 ├──────────────────────────────────────────────────────────────────────┤
 │ Camada 4 — CLI (`network ...`, estilo nvidia-smi/kubectl/docker/git)│
 ├──────────────────────────────────────────────────────────────────────┤
@@ -87,17 +87,26 @@ Ver [`api-spec.md`](api-spec.md) para os comandos implementados na Fase 1.
 
 ## Camadas 5 e 6 — Dashboards
 
-- **Web** (Fase 1, prioridade): Next.js/React/TypeScript, tema escuro,
-  ECharts para séries temporais, Cytoscape.js reservado para o grafo de
-  topologia (Fase 3).
-- **Desktop** (Fase 4): WPF/WinUI, consumindo a mesma API REST/WS/gRPC — sem
-  lógica de negócio duplicada.
+- ✅ **Web**: Next.js/React/TypeScript, tema escuro, ECharts para séries
+  temporais, Cytoscape.js para o grafo de topologia, login real (`AuthGate`).
+- ✅ **Desktop** (`desktop/NetworkObservatory.Desktop`, WPF — ver
+  `desktop/README.md` para por que não é WinUI 3): consome a mesma API REST
+  do web/CLI, sem lógica de negócio duplicada.
 
-## Segurança (visão)
+## Segurança
 
-- Camada 2 roda com privilégio mínimo necessário; hoje (Fase 1) não requer
-  elevação, pois as APIs de SO usadas são de leitura e não privilegiadas.
-- Fase 2 (driver real) introduz o contrato IOCTL/Netlink com validação
-  rigorosa de entrada, driver assinado (test-signing em dev, WHQL/EV cert em
-  produção) — detalhado em [`phase2-kernel-driver-design.md`](phase2-kernel-driver-design.md).
-- Logs auditáveis desde a Fase 1 (`tracing`), rotação estruturada é Fase 3.
+- Camada 2 roda com privilégio mínimo necessário; as APIs de SO usadas
+  (Fase 1) são de leitura e não privilegiadas, sem exigir elevação.
+- ✅ Autenticação real (`crates/store/src/auth.rs`): senhas com argon2,
+  sessões via cookie HttpOnly + SameSite=Lax, CORS restrito a uma origem
+  explícita com credentials. Cookie `Secure` fica pendente para quando o
+  serviço rodar atrás de TLS (hoje é HTTP local); enforcement de sessão nas
+  rotas REST é opt-in (`NETOBS_AUTH_REQUIRED`) — ver Fase H no roadmap.
+- ✅ Trilha de auditoria real (`crates/store/src/audit.rs`,
+  `GET /api/v1/audit`) e logs com rotação diária (`tracing-appender`).
+- O driver Windows real (Fase L) valida todo IOCTL por tamanho exato via
+  `METHOD_BUFFERED` (buffer nunca é um ponteiro de user-mode dereferenciado
+  diretamente) e é um observador puro — nunca inspeciona, atrasa ou reescreve
+  pacotes (`docs/phase2-kernel-driver-design.md`). Assinatura de produção
+  (EV cert + WHQL) permanece um processo externo, fora do que é automatizável
+  aqui.
