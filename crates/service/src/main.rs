@@ -1,6 +1,7 @@
 mod alert_routes;
 mod grpc;
 mod health_routes;
+mod plugin_routes;
 mod poller;
 mod report_routes;
 mod routes;
@@ -100,6 +101,8 @@ async fn main() -> anyhow::Result<()> {
         .route("/api/v1/alerts/recent", get(alert_routes::get_recent_alerts))
         .route("/api/v1/topology", get(topology_routes::get_topology))
         .route("/api/v1/reports", get(report_routes::get_report))
+        .route("/api/v1/plugins", get(plugin_routes::list_plugins))
+        .route("/api/v1/plugins/:name/run", get(plugin_routes::run_plugin))
         .layer(cors)
         .layer(TraceLayer::new_for_http())
         .with_state(state);

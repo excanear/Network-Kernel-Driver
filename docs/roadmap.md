@@ -42,8 +42,16 @@ Design completo: [`phase2-kernel-driver-design.md`](phase2-kernel-driver-design.
   Timeline detalhada por evento fica para quando o histórico multi-intervalo
   (Fase F) estiver pronto — hoje o relatório reflete o snapshot atual + janela
   recente de alertas.
-- **Sistema de plugins**: coletores, dashboards, gráficos, alertas,
-  relatórios e integrações adicionais carregáveis sem alterar o core.
+- ✅ **Sistema de plugins** (`crates/plugin-api`, `GET /api/v1/plugins[/:name/run]`,
+  `network plugins` / `network plugin-run`): plugins são executáveis
+  independentes que falam JSON via stdout (`manifest`/`run`) — sem ABI de
+  biblioteca dinâmica para manter estável entre versões do compilador. Exemplo
+  real incluído: `plugins/ping-latency-collector`, medindo latência/jitter/
+  perda via tempo de conexão TCP (proxy sem privilégio para RTT ICMP, que
+  exigiria raw sockets elevados). Novos coletores/alertas/relatórios podem ser
+  adicionados como novos executáveis, sem alterar o core. Dashboards/gráficos
+  plugáveis na Camada 6 ficam para quando houver um mecanismo de widgets
+  dinâmicos no web (não implementado nesta fase).
 - **Logging estruturado com rotação** e trilha de auditoria completa.
 - **Banco de dados**: suporte PostgreSQL/TimescaleDB como alternativa ao
   SQLite para séries temporais em escala.

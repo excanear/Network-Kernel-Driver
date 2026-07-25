@@ -9,8 +9,10 @@ members = [
     "crates/alerts",
     "crates/topology",
     "crates/reports",
+    "crates/plugin-api",
     "crates/service",
     "crates/cli",
+    "plugins/ping-latency-collector",
 ]
 
 [workspace.package]

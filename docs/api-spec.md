@@ -17,6 +17,8 @@ Base local de desenvolvimento: `http://localhost:7878/api/v1`
 | GET | `/alerts/recent?limit=` | Alertas recentes (ativos + resolvidos) |
 | GET | `/topology` | Grafo de topologia (nós + arestas) |
 | GET | `/reports?format=csv\|json\|html\|md\|pdf` | Relatório completo no formato pedido |
+| GET | `/plugins` | Lista plugins descobertos (manifestos) |
+| GET | `/plugins/:name/run?target=` | Executa um plugin agora |
 
 Respostas em JSON, serializando `Snapshot`/`InterfaceStats` (ver
 [`data-model.md`](data-model.md)) via `serde`.

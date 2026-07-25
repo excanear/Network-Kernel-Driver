@@ -66,6 +66,14 @@ enum Commands {
     },
     /// Aggregate health statistics per interface
     Statistics,
+    /// List discovered plugins
+    Plugins,
+    /// Run a plugin now
+    PluginRun {
+        name: String,
+        #[arg(long)]
+        target: Option<String>,
+    },
 }
 
 #[tokio::main]
@@ -90,6 +98,8 @@ async fn main() -> anyhow::Result<()> {
         Commands::Export { format, output } => commands::export::run(&base_url, &format, output).await?,
         Commands::Alerts { all } => commands::alerts::run(&base_url, all).await?,
         Commands::Statistics => commands::statistics::run(&base_url).await?,
+        Commands::Plugins => commands::plugins::list(&base_url).await?,
+        Commands::PluginRun { name, target } => commands::plugins::run(&base_url, &name, target).await?,
     }
 
     Ok(())

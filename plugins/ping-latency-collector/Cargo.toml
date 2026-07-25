@@ -1,0 +1,15 @@
+[package]
+name = "ping-latency-collector"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "ping-latency-collector"
+path = "src/main.rs"
+
+[dependencies]
+plugin-api = { path = "../../crates/plugin-api" }
+serde_json.workspace = true
+chrono.workspace = true
+clap = { version = "4", features = ["derive"] }
