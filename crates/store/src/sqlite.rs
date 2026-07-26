@@ -9,6 +9,8 @@ pub enum StoreError {
     Sqlite(#[from] rusqlite::Error),
     #[error("auth error: {0}")]
     Auth(String),
+    #[error("postgres error: {0}")]
+    Postgres(String),
 }
 
 /// Persistence contract for historical samples, implemented today by

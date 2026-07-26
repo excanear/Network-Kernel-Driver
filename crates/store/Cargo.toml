@@ -14,3 +14,4 @@ thiserror.workspace = true
 rusqlite = { version = "0.31", features = ["bundled"] }
 argon2 = "0.5"
 rand = "0.8"
+postgres = "0.19"

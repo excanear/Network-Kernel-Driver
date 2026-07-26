@@ -102,8 +102,21 @@ fn init_tracing() {
 pub async fn run_server() -> anyhow::Result<()> {
     let collector = build_collector();
     let ring_buffer = Arc::new(RingBufferStore::new());
-    let history: Arc<dyn store::HistoryStore> =
-        Arc::new(SqliteHistoryStore::open("network-observatory.db")?);
+
+    // Backend choice for historical samples: Postgres/TimescaleDB when
+    // NETOBS_DATABASE_URL is set (Phase F, docs/roadmap.md), SQLite
+    // otherwise. Same HistoryStore trait either way — nothing else in this
+    // file, `cli`, or `web` needs to know which one is active.
+    let history: Arc<dyn store::HistoryStore> = match std::env::var("NETOBS_DATABASE_URL") {
+        Ok(url) => {
+            info!("using PostgreSQL/TimescaleDB history backend");
+            Arc::new(store::PostgresHistoryStore::open(&url)?)
+        }
+        Err(_) => {
+            info!("using SQLite history backend (set NETOBS_DATABASE_URL to use Postgres/TimescaleDB)");
+            Arc::new(SqliteHistoryStore::open("network-observatory.db")?)
+        }
+    };
     let alert_store: Arc<dyn store::AlertStore> =
         Arc::new(SqliteAlertStore::open("network-observatory.db")?);
     let auth_store: Arc<dyn store::AuthStore> =

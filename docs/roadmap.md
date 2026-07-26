@@ -66,8 +66,21 @@ Design completo: [`phase2-kernel-driver-design.md`](phase2-kernel-driver-design.
   auditoria** real (`crates/store/src/audit.rs`, `GET /api/v1/audit`):
   login/logout, falhas de login, alertas disparados/resolvidos e execuções de
   plugin ficam registrados com ator e timestamp.
-- **Banco de dados**: suporte PostgreSQL/TimescaleDB como alternativa ao
-  SQLite para séries temporais em escala.
+- ✅ **Banco de dados** (`crates/store/src/postgres.rs`, `NETOBS_DATABASE_URL`):
+  PostgreSQL 17 + extensão TimescaleDB real (compilada do source via
+  `scripts/wsl-setup-timescaledb.sh`, rodando no WSL2 já que este Ubuntu
+  recente vem com PG18 e o TimescaleDB 2.17.x só suporta até PG17), mesmo
+  trait `HistoryStore` do SQLite — troca de backend é só uma variável de
+  ambiente. Cliente síncrono (`postgres` crate) roda numa thread OS dedicada
+  fora do runtime Tokio (evita o panic "cannot start a runtime from within a
+  runtime"), com reconexão automática. **Limitação observada do ambiente**:
+  a conexão entre Windows e o IP direto da VM WSL2 cai a cada ~20s (parece
+  ser um idle-timeout do NAT/vSwitch do WSL2, não um bug do código — o
+  encaminhamento de `127.0.0.1:5433` também não funciona nesta máquina,
+  diferente de outras portas, então usamos o IP da VM diretamente); a
+  reconexão automática cobre isso, perdendo no pior caso uma amostra
+  isolada por ciclo. Um Postgres real fora do WSL2 (ou WSL2 com rede
+  espelhada) não teria esse problema.
 - ✅ **Windows Service / daemon systemd real** (`crates/service/src/win_service.rs`,
   flag `--service`, `scripts/install-windows-service.ps1` /
   `scripts/install-linux-daemon.sh` + unit file): `network-observatoryd` pode

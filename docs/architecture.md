@@ -67,8 +67,9 @@ Camada 1 e é a fonte única de verdade para as camadas acima:
 - Loop de poll periódico (coleta → ring buffer em memória → broadcast para
   WebSocket → downsample periódico para o histórico persistido).
 - Cache em memória para leituras de baixa latência.
-- Histórico via `store::HistoryStore` (SQLite hoje; Postgres/TimescaleDB no
-  roadmap, mesma interface).
+- ✅ Histórico via `store::HistoryStore` — SQLite por padrão, ou
+  PostgreSQL/TimescaleDB real via `NETOBS_DATABASE_URL` (mesma interface,
+  ver Fase F no roadmap).
 - Hooks para alertas, IA, logs estruturados e plugins (Fase 3, ver roadmap).
 
 ## Camada 3 — API
