@@ -5,12 +5,14 @@
 web/node_modules/
 web/.next/
 web/out/
+web/coverage/
 web/.env*.local
 
-# Data
+# Data / runtime
 *.db
 *.sqlite
 *.sqlite3
+*.log
 /logs/
 
 # Windows driver build artifacts (Phase L) — see driver/windows/build.ps1
@@ -22,6 +24,17 @@ driver/windows/*.exp
 driver/windows/*.lib
 driver/windows/*.cat
 driver/windows/*.pfx
+
+# Linux driver build artifacts (Phase M) — normally built outside the repo
+# (see driver/linux/README.md), but ignore in case someone builds in-place.
+driver/linux/*.ko
+driver/linux/*.o
+driver/linux/*.mod
+driver/linux/*.mod.c
+driver/linux/.*.cmd
+driver/linux/Module.symvers
+driver/linux/modules.order
+driver/linux/.tmp_versions/
 
 # .NET desktop app (Phase N)
 desktop/**/bin/
