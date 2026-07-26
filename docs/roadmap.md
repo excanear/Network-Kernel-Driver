@@ -14,7 +14,17 @@ web ao vivo. Ver [`phase1-slice-design.md`](phase1-slice-design.md).
   PowerShell elevado + reboot para test-signing — não executável pelo agente
   de automação nesta sessão (mesma classe de limitação do sudo/WSL2 na Fase
   F/M), documentado em `driver/windows/README.md`.
-- ❌ Linux: módulo de kernel + família Netlink — ver Fase M.
+- ✅ **Linux**: módulo de kernel real (`driver/linux/`) — compilado contra os
+  headers reais do kernel WSL2 (via árvore do
+  [microsoft/WSL2-Linux-Kernel](https://github.com/microsoft/WSL2-Linux-Kernel)
+  na tag exata, `modules_prepare`), **carregado de verdade via `insmod`**,
+  família genetlink `netobs` visível em `genl ctrl list`, retornando dados
+  reais de interface (`lo`, `eth0`) via consulta Netlink crua
+  (`scripts/netobs-genl-test.py`), e descarregado limpo via `rmmod`. Falta
+  `Module.symvers` de um build de kernel completo (contornado com
+  `KBUILD_MODPOST_WARN=1` — os símbolos "não resolvidos" são padrão e
+  existem de verdade no kernel rodando) e o crate Rust
+  `collector-kernel-linux` que consumiria isso — ver `driver/linux/README.md`.
 - Backend `collector-kernel` plugável atrás do mesmo trait `InterfaceCollector`
   (contrato IOCTL já definido em `driver/windows/inc/ioctl_contract.h`; o
   crate Rust `collector-kernel-windows` que fala com `\\.\NetObsFilter` ainda
