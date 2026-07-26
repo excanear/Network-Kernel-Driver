@@ -32,3 +32,5 @@ desktop/**/obj/
 Thumbs.db
 .vscode/
 .idea/
+.claude/
+.github/
