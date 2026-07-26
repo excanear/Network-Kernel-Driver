@@ -2,49 +2,49 @@
 
 # 🛰️ Network Observatory
 
-**An enterprise-grade network interface observability platform.**
-Real-time metrics, health scoring, alerting, topology mapping, and reporting for every network adapter on Windows and Linux — from kernel-mode drivers up through REST/gRPC/WebSocket APIs to web, desktop, and CLI dashboards.
+**Uma plataforma de observabilidade de interface de rede de nível enterprise.**
+Métricas em tempo real, health score, alertas, mapeamento de topologia e relatórios para toda interface de rede de uma máquina Windows ou Linux — de drivers em modo kernel até APIs REST/gRPC/WebSocket, passando por dashboards web, desktop e CLI.
 
 [![CI](https://github.com/excanear/network-observatory/actions/workflows/ci.yml/badge.svg)](https://github.com/excanear/network-observatory/actions/workflows/ci.yml)
 [![Rust](https://img.shields.io/badge/Rust-stable-orange?logo=rust)](https://www.rust-lang.org/)
 [![Next.js](https://img.shields.io/badge/Next.js-14-black?logo=next.js)](https://nextjs.org/)
 [![.NET](https://img.shields.io/badge/.NET-8-512BD4?logo=dotnet)](https://dotnet.microsoft.com/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](#license)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](#licença)
 
-[Architecture](docs/architecture.md) · [API Spec](docs/api-spec.md) · [Roadmap](docs/roadmap.md) · [Kernel Driver Design](docs/phase2-kernel-driver-design.md)
+[Arquitetura](docs/architecture.md) · [Especificação da API](docs/api-spec.md) · [Roadmap](docs/roadmap.md) · [Design do Driver de Kernel](docs/phase2-kernel-driver-design.md)
 
 </div>
 
 ---
 
-## What this is
+## O que é isto
 
-Network Observatory watches every network interface on a host — real counters, real link state, real health, real alerts — and surfaces it through whichever interface fits the job: a terminal, a browser, a native desktop app, or another service talking gRPC. It is strictly an **observability** platform: nothing in this codebase intercepts, modifies, or delays a single packet. Every layer, from the kernel drivers up, is designed as a read-only observer.
+O Network Observatory observa toda interface de rede de um host — contadores reais, estado de link real, saúde real, alertas reais — e expõe isso pela interface que fizer sentido: um terminal, um navegador, um app desktop nativo, ou outro serviço falando gRPC. É estritamente uma plataforma de **observabilidade**: nada neste código intercepta, modifica ou atrasa um único pacote. Toda camada, desde os drivers de kernel, foi desenhada como um observador somente leitura.
 
-It's built the way a platform team would build it for production: a real Rust service backed by a pluggable storage layer (SQLite or PostgreSQL/TimescaleDB), real kernel-mode drivers on both Windows (NDIS 6.30 lightweight filter) and Linux (a genetlink kernel module), a process-isolated plugin system, argon2-backed multi-user auth, structured rotating logs with an audit trail, and CI that actually builds and tests the whole stack on every push.
+Construído como um time de plataforma construiria para produção: um serviço Rust de verdade com uma camada de armazenamento plugável (SQLite ou PostgreSQL/TimescaleDB), drivers reais em modo kernel tanto no Windows (filtro NDIS 6.30) quanto no Linux (módulo de kernel com genetlink), um sistema de plugins isolado por processo, autenticação multiusuário com argon2, logs estruturados com rotação e trilha de auditoria, e um CI que de fato compila e testa a stack inteira a cada push.
 
-## Feature matrix
+## Matriz de funcionalidades
 
-| Layer | What's real |
+| Camada | O que é real |
 |---|---|
-| **Kernel drivers** | Windows NDIS 6.30 lightweight filter (`driver/windows`) — compiles, links, test-signs. Linux genetlink kernel module (`driver/linux`) — compiles against real kernel headers, **loads via `insmod`**, verified serving live interface data over Netlink. Both fall back gracefully to user-mode collection when not installed. |
-| **Collection** | Zero-driver-required user-mode collectors via the Windows IP Helper API and Linux procfs/sysfs — real counters, link speed, MTU, MAC, IPv4/IPv6, from the moment the service starts. |
-| **API** | REST, WebSocket, and gRPC (`tonic`) — all three share one poll loop, so every client sees the exact same numbers at the exact same instant. |
-| **CLI** | `network status / interfaces / monitor / history / health / alerts / topology / export / plugins` — modeled on `nvidia-smi` / `kubectl` / `docker` UX. |
-| **Web dashboard** | Next.js + TypeScript, dark theme, live throughput charts (ECharts), interactive topology graph (Cytoscape.js), real login gate. |
-| **Desktop dashboard** | Native WPF (.NET 8) app consuming the same REST API — no duplicated business logic. |
-| **Health & alerting** | Per-interface 0–100 health score (availability, stability, loss, errors) and a stateful rule engine (link down, packet loss, IP/speed change) with automatic resolution. |
-| **Topology** | Auto-detected gateway, DNS, and virtual adapters (Hyper-V, Docker, WSL, VMware, VirtualBox, VPN) rendered as an interactive graph. |
-| **Reports** | CSV, JSON, HTML, Markdown, and PDF — generated on demand via REST or `network export`. |
-| **Plugins** | Language-agnostic process plugins speaking JSON over stdout — no unsafe dynamic-library ABI. Ships with a real example (TCP-connect latency/jitter probe). |
-| **Auth** | Multi-user accounts, argon2 password hashing, HttpOnly session cookies, audited login/logout, Grafana-style admin bootstrap on first run. |
-| **Storage** | SQLite by default; PostgreSQL + TimescaleDB via one environment variable, same trait, zero code changes elsewhere. |
-| **Ops** | Runs as a real Windows Service (SCM-integrated) or Linux `systemd` daemon, rotating file logs, and a persisted audit trail. |
-| **Quality** | 27 automated tests (Rust + web) across both Windows and Linux, GitHub Actions CI gating every push. |
+| **Drivers de kernel** | Filtro NDIS 6.30 real no Windows (`driver/windows`) — compila, linka e assina (test-sign). Módulo de kernel genetlink no Linux (`driver/linux`) — compila contra headers reais do kernel, **carrega de verdade via `insmod`**, verificado servindo dados reais de interface via Netlink. Ambos caem de volta graciosamente para coleta em modo usuário quando não instalados. |
+| **Coleta** | Coletores em modo usuário sem depender de driver, via IP Helper API (Windows) e procfs/sysfs (Linux) — contadores, velocidade de link, MTU, MAC, IPv4/IPv6 reais desde o momento em que o serviço sobe. |
+| **API** | REST, WebSocket e gRPC (`tonic`) — as três compartilham um único loop de coleta, então todo cliente vê exatamente os mesmos números no mesmo instante. |
+| **CLI** | `network status / interfaces / monitor / history / health / alerts / topology / export / plugins` — modelada na UX do `nvidia-smi` / `kubectl` / `docker`. |
+| **Dashboard web** | Next.js + TypeScript, tema escuro, gráfico de throughput ao vivo (ECharts), grafo de topologia interativo (Cytoscape.js), tela de login real. |
+| **Dashboard desktop** | App WPF nativo (.NET 8) consumindo a mesma API REST — sem lógica de negócio duplicada. |
+| **Health e alertas** | Health score de 0-100 por interface (disponibilidade, estabilidade, perda, erros) e um motor de regras com estado (link down, perda de pacotes, mudança de IP/velocidade) com resolução automática. |
+| **Topologia** | Gateway, DNS e adaptadores virtuais (Hyper-V, Docker, WSL, VMware, VirtualBox, VPN) detectados automaticamente e renderizados como um grafo interativo. |
+| **Relatórios** | CSV, JSON, HTML, Markdown e PDF — gerados sob demanda via REST ou `network export`. |
+| **Plugins** | Plugins como processos independentes de qualquer linguagem, falando JSON via stdout — sem ABI insegura de biblioteca dinâmica. Vem com um exemplo real (sonda de latência/jitter via TCP-connect). |
+| **Autenticação** | Contas multiusuário, hash de senha com argon2, cookies de sessão HttpOnly, login/logout auditados, bootstrap de admin no primeiro start (padrão Grafana). |
+| **Armazenamento** | SQLite por padrão; PostgreSQL + TimescaleDB via uma única variável de ambiente, mesmo trait, zero mudança de código em outro lugar. |
+| **Operação** | Roda como Windows Service de verdade (integrado à SCM) ou daemon `systemd` no Linux, logs em arquivo com rotação, e trilha de auditoria persistida. |
+| **Qualidade** | 27 testes automatizados (Rust + web) rodando em Windows e Linux, CI no GitHub Actions travando todo push. |
 
-See [`docs/roadmap.md`](docs/roadmap.md) for the full phase-by-phase build log and what's intentionally deferred (an AI insights module, production driver signing, multi-interval history rollups).
+Veja [`docs/roadmap.md`](docs/roadmap.md) para o histórico completo de construção fase a fase e o que foi deliberadamente adiado (um módulo de IA, assinatura de driver de produção, rollups de histórico multi-intervalo).
 
-## Architecture
+## Arquitetura
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
@@ -54,7 +54,7 @@ See [`docs/roadmap.md`](docs/roadmap.md) for the full phase-by-phase build log a
               ▼                   ▼                   ▼
 ┌─────────────────────────────────────────────────────────────────────────┐
 │              REST · WebSocket · gRPC   (crates/service, axum + tonic)   │
-│   auth · health · alerts · topology · reports · plugins · audit log     │
+│   auth · health · alertas · topologia · relatórios · plugins · auditoria │
 └─────────────┬─────────────────────────────────────────────────────────┬─┘
               │                                                         │
               ▼                                                         ▼
@@ -62,106 +62,106 @@ See [`docs/roadmap.md`](docs/roadmap.md) for the full phase-by-phase build log a
               ▲
               │
 ┌─────────────┴─────────────────────────────────────────────────────────┐
-│           collector_core::InterfaceCollector  (one shared trait)        │
+│         collector_core::InterfaceCollector  (um único trait comum)      │
 │  ┌────────────────────────┐            ┌────────────────────────────┐  │
 │  │ Windows                │            │ Linux                      │  │
 │  │  · IP Helper API (user)│            │  · procfs/sysfs (user)     │  │
-│  │  · NDIS 6.30 LWF driver│            │  · netobs genetlink module │  │
+│  │  · driver NDIS 6.30    │            │  · módulo genetlink netobs │  │
 │  └────────────────────────┘            └────────────────────────────┘  │
 └───────────────────────────────────────────────────────────────────────┘
 ```
 
-Full six-layer breakdown, design rationale, and the kernel driver internals: [`docs/architecture.md`](docs/architecture.md) · [`docs/phase2-kernel-driver-design.md`](docs/phase2-kernel-driver-design.md).
+Detalhamento completo das seis camadas, racional de design e internals dos drivers de kernel: [`docs/architecture.md`](docs/architecture.md) · [`docs/phase2-kernel-driver-design.md`](docs/phase2-kernel-driver-design.md).
 
-## Tech stack
+## Stack técnica
 
-| Area | Stack |
+| Área | Stack |
 |---|---|
-| Service | Rust, Tokio, Axum, Tonic (gRPC), rusqlite, `postgres` |
+| Serviço | Rust, Tokio, Axum, Tonic (gRPC), rusqlite, `postgres` |
 | Kernel — Windows | C, WDK, NDIS 6.30 (Lightweight Filter) |
-| Kernel — Linux | C, kbuild, generic Netlink (`genl`) |
+| Kernel — Linux | C, kbuild, Netlink genérico (`genl`) |
 | Web | Next.js 14, React, TypeScript, ECharts, Cytoscape.js, Vitest |
 | Desktop | .NET 8, WPF |
 | CLI | Rust, Clap |
-| Storage | SQLite, PostgreSQL + TimescaleDB |
-| CI | GitHub Actions (Windows + Linux matrix) |
+| Armazenamento | SQLite, PostgreSQL + TimescaleDB |
+| CI | GitHub Actions (matriz Windows + Linux) |
 
 ## Quickstart
 
-**Prerequisites:** [Rust](https://rustup.rs) (stable) and [Node.js](https://nodejs.org) 20+.
+**Pré-requisitos:** [Rust](https://rustup.rs) (stable) e [Node.js](https://nodejs.org) 20+.
 
 ```powershell
-# 1. Build the Rust workspace
+# 1. Compilar o workspace Rust
 cargo build --workspace
 
-# 2. Run the service (REST/WS on :7878, gRPC on :50051)
+# 2. Rodar o serviço (REST/WS na :7878, gRPC na :50051)
 cargo run -p service
-# or: .\scripts\dev-service.ps1
+# ou: .\scripts\dev-service.ps1
 
-# 3. In another terminal, drive it from the CLI
+# 3. Em outro terminal, usar a CLI
 cargo run -p cli -- status
 cargo run -p cli -- interfaces
 cargo run -p cli -- monitor
 cargo run -p cli -- topology
 cargo run -p cli -- export --format html
 
-# 4. Run the web dashboard
+# 4. Rodar o dashboard web
 cd web
 npm install
 npm run dev
-# → http://localhost:3000 (first run logs a bootstrapped admin password)
+# → http://localhost:3000 (o primeiro start loga uma senha de admin gerada)
 
-# 5. Or run the native desktop dashboard
+# 5. Ou rodar o dashboard desktop nativo
 cd desktop/NetworkObservatory.Desktop
 dotnet run
 ```
 
-Point the service at PostgreSQL/TimescaleDB instead of SQLite:
+Apontar o serviço para PostgreSQL/TimescaleDB em vez de SQLite:
 
 ```powershell
 $env:NETOBS_DATABASE_URL = "postgres://user:pass@host:5432/network_observatory"
 cargo run -p service
 ```
 
-## Repository structure
+## Estrutura do repositório
 
 ```
 crates/
-  collector-core        # InterfaceStats/Snapshot model + InterfaceCollector trait
-  collector-windows      collector-linux     # real, driver-free platform backends
-  store                  # SQLite + Postgres/TimescaleDB HistoryStore, auth, audit, alerts
+  collector-core        # modelo InterfaceStats/Snapshot + trait InterfaceCollector
+  collector-windows      collector-linux     # backends reais por plataforma, sem driver
+  store                  # HistoryStore (SQLite + Postgres/TimescaleDB), auth, auditoria, alertas
   health                 alerts              topology            reports
   plugin-api             service             cli
 driver/
-  windows                # NDIS 6.30 lightweight filter driver
-  linux                  # genetlink kernel module
+  windows                # driver de filtro NDIS 6.30
+  linux                  # módulo de kernel genetlink
 plugins/
-  ping-latency-collector # example process plugin (TCP-connect latency probe)
-web/                      # Next.js dashboard
-desktop/NetworkObservatory.Desktop/  # WPF dashboard
-docs/                     # architecture, data model, API spec, kernel driver design, roadmap
-scripts/                  # dev/install helpers (Windows Service, systemd, WSL2 Postgres/kernel)
+  ping-latency-collector # exemplo de plugin (sonda de latência via TCP-connect)
+web/                      # dashboard Next.js
+desktop/NetworkObservatory.Desktop/  # dashboard WPF
+docs/                     # arquitetura, modelo de dados, spec de API, design do driver, roadmap
+scripts/                  # helpers de dev/instalação (Windows Service, systemd, Postgres/kernel via WSL2)
 ```
 
-## Documentation
+## Documentação
 
-- [Architecture (six layers)](docs/architecture.md)
-- [Phase 1 vertical-slice design](docs/phase1-slice-design.md)
-- [Kernel driver design (Windows NDIS + Linux genetlink)](docs/phase2-kernel-driver-design.md)
-- [Data model](docs/data-model.md)
-- [API specification (REST / WebSocket / gRPC)](docs/api-spec.md)
-- [Roadmap & build log](docs/roadmap.md)
-- [Desktop app notes](desktop/README.md)
-- [Windows driver build/install](driver/windows/README.md) · [Linux driver build/load](driver/linux/README.md)
+- [Arquitetura (seis camadas)](docs/architecture.md)
+- [Design da fatia vertical da Fase 1](docs/phase1-slice-design.md)
+- [Design do driver de kernel (NDIS Windows + genetlink Linux)](docs/phase2-kernel-driver-design.md)
+- [Modelo de dados](docs/data-model.md)
+- [Especificação da API (REST / WebSocket / gRPC)](docs/api-spec.md)
+- [Roadmap e histórico de construção](docs/roadmap.md)
+- [Notas do app desktop](desktop/README.md)
+- [Build/instalação do driver Windows](driver/windows/README.md) · [Build/carregamento do driver Linux](driver/linux/README.md)
 
-## Security
+## Segurança
 
-- Strictly observational: no traffic interception, modification, or injection anywhere in the stack — see the "out of permanent scope" note in [`docs/roadmap.md`](docs/roadmap.md).
-- Least privilege: user-mode collection needs no elevation; only driver *installation* (not operation) requires admin/root.
-- Kernel-mode IOCTL/Netlink buffers are size-validated before use; no direct dereference of user-mode pointers.
-- Passwords hashed with argon2; sessions are HttpOnly cookies; REST enforcement is opt-in via `NETOBS_AUTH_REQUIRED`.
-- Every login, alert, and plugin execution is written to an audit trail (`GET /api/v1/audit`).
+- Estritamente observacional: nenhuma interceptação, modificação ou injeção de tráfego em nenhum ponto da stack — ver a nota "fora de escopo permanente" em [`docs/roadmap.md`](docs/roadmap.md).
+- Privilégio mínimo: a coleta em modo usuário não exige elevação; só a *instalação* do driver (não a operação) exige admin/root.
+- Buffers de IOCTL/Netlink em modo kernel são validados por tamanho antes do uso; nenhum ponteiro de modo usuário é dereferenciado diretamente.
+- Senhas com hash argon2; sessões são cookies HttpOnly; enforcement na API REST é opt-in via `NETOBS_AUTH_REQUIRED`.
+- Todo login, alerta e execução de plugin é gravado numa trilha de auditoria (`GET /api/v1/audit`).
 
-## License
+## Licença
 
-MIT — see `Cargo.toml` workspace metadata.
+MIT — ver metadados do workspace em `Cargo.toml`.
